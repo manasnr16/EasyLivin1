@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-cormorant: 'Cormorant Garamond';
+  --font-inter: 'Inter';
+
+  /* Exact brand colours from logo pixel analysis */
+  --navy:        #1e2444;
+  --navy-deep:   #0f172a;
+  --navy-mid:    #252d55;
+  --gold:        #b59762;
+  --gold-light:  #d4b87a;
+  --gold-pale:   #f0e6cc;
+  --cream:       #f5f3ee;
+  --brand-white: #eaeaea;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: #1a1e38;
+  background: #ffffff;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+@layer components {
+  /* Typography */
+  .font-display { font-family: var(--font-cormorant), Georgia, serif; }
+
+  /* Section label — small gold uppercase tracking */
+  .section-label {
+    @apply text-2xs font-semibold tracking-[0.18em] uppercase text-gold block;
+  }
+
+  /* Accent underline on nav */
+  .nav-underline {
+    @apply relative;
+  }
+  .nav-underline::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-[1.5px] bg-gold scale-x-0 origin-left transition-transform duration-200;
+  }
+  .nav-underline:hover::after,
+  .nav-underline.active::after {
+    @apply scale-x-100;
+  }
+
+  /* Buttons */
+  .btn-gold {
+    @apply inline-flex items-center gap-2 bg-gold hover:bg-gold-light text-navy-deep font-semibold text-xs tracking-[0.08em] uppercase px-6 py-3 rounded transition-all duration-200 whitespace-nowrap;
+  }
+  .btn-gold:hover {
+    @apply shadow-lg -translate-y-px;
+  }
+  .btn-navy {
+    @apply inline-flex items-center gap-2 bg-navy hover:bg-navy-mid text-brand-white font-semibold text-xs tracking-[0.08em] uppercase px-6 py-3 rounded transition-all duration-200 whitespace-nowrap;
+  }
+  .btn-outline-white {
+    @apply inline-flex items-center gap-2 bg-transparent border border-white/30 hover:border-gold hover:text-gold text-white/80 font-semibold text-xs tracking-[0.08em] uppercase px-6 py-3 rounded transition-all duration-200 whitespace-nowrap;
+  }
+  .btn-outline-navy {
+    @apply inline-flex items-center gap-2 bg-transparent border border-navy/20 hover:border-gold hover:text-gold text-navy font-semibold text-xs tracking-[0.08em] uppercase px-5 py-2.5 rounded transition-all duration-200 whitespace-nowrap text-xs;
+  }
+
+  /* Property card */
+  .prop-card {
+    @apply bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer;
+  }
+  .prop-badge {
+    @apply text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1 rounded-sm backdrop-blur-sm;
+  }
+
+  /* Form inputs */
+  .form-input {
+    @apply w-full px-4 py-3 border border-slate-200 rounded text-sm text-slate-800 bg-slate-50 focus:border-gold focus:bg-white focus:outline-none transition-colors duration-200;
+  }
+  .form-label {
+    @apply block text-[11px] font-bold tracking-[0.12em] uppercase text-slate-400 mb-1.5;
+  }
+}
+
+/* Dropdown animation */
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: dropdown-in 0.15s ease-out forwards;
+}

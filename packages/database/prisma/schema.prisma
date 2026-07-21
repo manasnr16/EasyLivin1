@@ -1,0 +1,527 @@
+// ============================================================
+// EASY LIVIN GOA — DATABASE SCHEMA
+// ============================================================
+// This file is the single source of truth for the entire
+// database. Every table, relationship, index, and enum is
+// defined here. Prisma generates fully-typed TypeScript
+// types from this file automatically.
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  SUPER_ADMIN      // Full platform control
+  CLIENT_ADMIN     // Urmilla - manages her team & all listings
+  SALES_EXECUTIVE  // Sees only their own assigned leads/properties
+  MARKETING_MANAGER // Optional - handles campaigns
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PropertyType {
+  VILLA
+  APARTMENT
+  PLOT
+  BUNGALOW
+  COMMERCIAL
+  FARMHOUSE
+}
+
+enum PropertyStatus {
+  DRAFT             // Just created, not yet submitted
+  PENDING_APPROVAL  // Executive submitted, waiting for admin
+  PUBLISHED         // Live on the website
+  UNDER_NEGOTIATION
+  SOLD
+  RENTED
+  ARCHIVED
+}
+
+enum ListingType {
+  SALE
+  RENT
+  SALE_AND_RENT
+}
+
+enum GoaRegion {
+  NORTH_GOA
+  SOUTH_GOA
+}
+
+enum GoaTaluka {
+  // North Goa
+  BARDEZ
+  PERNEM
+  BICHOLIM
+  TISWADI
+  // South Goa
+  SALCETE
+  MORMUGAO
+  QUEPEM
+  SANGUEM
+  CANACONA
+  PONDA
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  FLOOR_PLAN
+  BROCHURE
+}
+
+enum LeadSource {
+  WEBSITE
+  WHATSAPP
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
+  YOUTUBE
+  MAGICBRICKS
+  ACRES_99
+  REFERRAL
+  WALK_IN
+  OTHER
+}
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  SITE_VISIT_SCHEDULED
+  SITE_VISIT_DONE
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum LeadStatus {
+  ACTIVE
+  DUPLICATE
+  JUNK
+}
+
+enum AssignmentMode {
+  MANUAL
+  ROUND_ROBIN
+  LOCATION_BASED
+}
+
+// ============================================================
+// USERS
+// ============================================================
+
+model User {
+  id                String      @id @default(cuid())
+  email             String      @unique
+  phone             String?     @unique
+  passwordHash      String      @map("password_hash")
+  firstName         String      @map("first_name")
+  lastName          String      @map("last_name")
+  role              UserRole    @default(SALES_EXECUTIVE)
+  status            UserStatus  @default(ACTIVE)
+  avatarUrl         String?     @map("avatar_url")
+
+  // Location specialisation for agents (which talukas they handle)
+  locationTags      GoaTaluka[]  @map("location_tags")
+
+  // Email verification
+  emailVerified     Boolean     @default(false) @map("email_verified")
+  emailVerifiedAt   DateTime?   @map("email_verified_at")
+
+  // Password reset
+  resetToken        String?     @map("reset_token")
+  resetTokenExpiry  DateTime?   @map("reset_token_expiry")
+
+  // Refresh token for JWT rotation
+  refreshTokenHash  String?     @map("refresh_token_hash")
+
+  // Notification preferences
+  notifyOnNewLead   Boolean     @default(true) @map("notify_on_new_lead")
+  notifyByEmail     Boolean     @default(true) @map("notify_by_email")
+  notifyByWhatsApp  Boolean     @default(false) @map("notify_by_whatsapp")
+
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  lastLoginAt       DateTime?   @map("last_login_at")
+
+  // Relations
+  propertiesOwned   Property[]          @relation("PropertyOwner")
+  propertyAssignments PropertyAgent[]
+  leadsAssigned     Lead[]              @relation("LeadAssignee")
+  leadsCreated      Lead[]              @relation("LeadCreator")
+  leadActivities    LeadActivity[]
+  auditLogs         AuditLog[]
+  uploadBatches     UploadBatch[]
+
+  @@index([email])
+  @@index([role, status])
+  @@map("users")
+}
+
+// ============================================================
+// PROPERTIES
+// ============================================================
+
+model Property {
+  id                String          @id @default(cuid())
+  title             String
+  slug              String          @unique
+  description       String?         @db.Text
+  propertyType      PropertyType    @map("property_type")
+  listingType       ListingType     @map("listing_type")
+  status            PropertyStatus  @default(DRAFT)
+
+  // Pricing
+  salePrice         Decimal?        @map("sale_price") @db.Decimal(14, 2)
+  rentPrice         Decimal?        @map("rent_price") @db.Decimal(10, 2)
+  rentPeriod        String?         @map("rent_period") // "monthly", "yearly"
+  priceNegotiable   Boolean         @default(false) @map("price_negotiable")
+  priceOnRequest    Boolean         @default(false) @map("price_on_request")
+
+  // Location — Goa-specific hierarchy
+  region            GoaRegion
+  taluka            GoaTaluka
+  village           String
+  address           String?
+  landmark          String?
+  latitude          Decimal?        @db.Decimal(10, 8)
+  longitude         Decimal?        @db.Decimal(11, 8)
+  googleMapsUrl     String?         @map("google_maps_url")
+  pincode           String?
+
+  // Property details
+  bedrooms          Int?
+  bathrooms         Int?
+  areaSqFt          Decimal?        @map("area_sq_ft") @db.Decimal(10, 2)
+  plotAreaSqFt      Decimal?        @map("plot_area_sq_ft") @db.Decimal(10, 2)
+  floors            Int?
+  furnishing        String?         // "unfurnished", "semi-furnished", "fully-furnished"
+  parking           Int?            @default(0)
+  facing            String?         // "north", "south", "east", "west"
+
+  // Legal & compliance
+  reraNumber        String?         @map("rera_number")
+  reraExpiry        DateTime?       @map("rera_expiry")
+  possessionStatus  String?         @map("possession_status") // "ready", "under-construction"
+  possessionDate    DateTime?       @map("possession_date")
+
+  // Flags
+  isFeatured        Boolean         @default(false) @map("is_featured")
+  isPremium         Boolean         @default(false) @map("is_premium")
+  isExclusive       Boolean         @default(false) @map("is_exclusive")
+
+  // Amenities (stored as array of strings for flexibility)
+  amenities         String[]
+
+  // SEO
+  metaTitle         String?         @map("meta_title")
+  metaDescription   String?         @map("meta_description")
+
+  // Visibility & approval
+  approvedAt        DateTime?       @map("approved_at")
+  approvedBy        String?         @map("approved_by")
+  publishedAt       DateTime?       @map("published_at")
+  viewCount         Int             @default(0) @map("view_count")
+
+  // Upload batch reference (if uploaded via CSV/Excel)
+  uploadBatchId     String?         @map("upload_batch_id")
+
+  // Ownership
+  createdById       String          @map("created_by_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  createdBy         User            @relation("PropertyOwner", fields: [createdById], references: [id])
+  agents            PropertyAgent[]
+  media             PropertyMedia[]
+  leads             Lead[]
+  enquiries         Enquiry[]
+  uploadBatch       UploadBatch?    @relation(fields: [uploadBatchId], references: [id])
+
+  @@index([status, listingType])
+  @@index([region, taluka, village])
+  @@index([propertyType])
+  @@index([createdById])
+  @@index([isFeatured, status])
+  @@index([slug])
+  @@map("properties")
+}
+
+// Many-to-many: which agents are assigned to which properties
+model PropertyAgent {
+  propertyId  String    @map("property_id")
+  agentId     String    @map("agent_id")
+  isPrimary   Boolean   @default(false) @map("is_primary")
+  assignedAt  DateTime  @default(now()) @map("assigned_at")
+
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  agent       User      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, agentId])
+  @@index([agentId])
+  @@map("property_agents")
+}
+
+// Property images, videos, floor plans, brochures
+model PropertyMedia {
+  id          String    @id @default(cuid())
+  propertyId  String    @map("property_id")
+  mediaType   MediaType @map("media_type")
+  url         String
+  thumbnailUrl String?  @map("thumbnail_url")
+  altText     String?   @map("alt_text")
+  caption     String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  isCover     Boolean   @default(false) @map("is_cover")
+  fileSizeBytes Int?    @map("file_size_bytes")
+  width       Int?
+  height      Int?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, mediaType])
+  @@index([propertyId, isCover])
+  @@map("property_media")
+}
+
+// ============================================================
+// LEADS / CRM
+// ============================================================
+
+model Lead {
+  id              String      @id @default(cuid())
+
+  // Contact info
+  name            String
+  email           String?
+  phone           String
+  alternatePhone  String?     @map("alternate_phone")
+  city            String?     // Where the buyer is from
+
+  // Lead info
+  source          LeadSource
+  stage           LeadStage   @default(NEW)
+  status          LeadStatus  @default(ACTIVE)
+  budget          Decimal?    @db.Decimal(14, 2)
+  budgetMax       Decimal?    @map("budget_max") @db.Decimal(14, 2)
+  notes           String?     @db.Text
+  requirementNote String?     @map("requirement_note") @db.Text // "Looking for 3BHK near beach"
+
+  // What they were interested in
+  propertyId      String?     @map("property_id")
+  interestedIn    PropertyType? @map("interested_in")
+  preferredRegion GoaRegion?  @map("preferred_region")
+  preferredTaluka GoaTaluka?  @map("preferred_taluka")
+
+  // Assignment
+  assignedToId    String?     @map("assigned_to_id")
+  createdById     String      @map("created_by_id")
+
+  // Duplicate detection
+  duplicateOfId   String?     @map("duplicate_of_id")
+
+  // External ref (e.g. MagicBricks lead ID)
+  externalRef     String?     @map("external_ref")
+  externalSource  String?     @map("external_source")
+
+  // WhatsApp thread ID for Phase 2
+  whatsappThreadId String?    @map("whatsapp_thread_id")
+
+  // Timestamps
+  firstContactAt  DateTime?   @map("first_contact_at")
+  lastContactAt   DateTime?   @map("last_contact_at")
+  closedAt        DateTime?   @map("closed_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  property        Property?   @relation(fields: [propertyId], references: [id])
+  assignedTo      User?       @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  createdBy       User        @relation("LeadCreator", fields: [createdById], references: [id])
+  activities      LeadActivity[]
+  duplicateOf     Lead?       @relation("Duplicates", fields: [duplicateOfId], references: [id])
+  duplicates      Lead[]      @relation("Duplicates")
+
+  @@index([phone])
+  @@index([email])
+  @@index([source, stage])
+  @@index([assignedToId, stage])
+  @@index([createdAt])
+  @@index([status])
+  @@map("leads")
+}
+
+// Every update to a lead is tracked here — full audit trail
+model LeadActivity {
+  id            String    @id @default(cuid())
+  leadId        String    @map("lead_id")
+  userId        String    @map("user_id")
+  type          String    // "note", "stage_change", "assignment", "email", "call", "whatsapp"
+  note          String?   @db.Text
+  fromStage     LeadStage? @map("from_stage")
+  toStage       LeadStage? @map("to_stage")
+  metadata      Json?     // extra data (e.g. email subject, call duration)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  lead          Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@index([userId])
+  @@map("lead_activities")
+}
+
+// ============================================================
+// ENQUIRIES (from the public website contact form)
+// A raw enquiry becomes a Lead after deduplication check
+// ============================================================
+
+model Enquiry {
+  id          String    @id @default(cuid())
+  name        String
+  email       String?
+  phone       String
+  message     String?   @db.Text
+  propertyId  String?   @map("property_id")
+  source      LeadSource @default(WEBSITE)
+  convertedToLeadId String? @map("converted_to_lead_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  property    Property? @relation(fields: [propertyId], references: [id])
+
+  @@index([phone])
+  @@index([createdAt])
+  @@map("enquiries")
+}
+
+// ============================================================
+// BULK UPLOAD BATCHES
+// Tracks every CSV/Excel upload the admin does
+// ============================================================
+
+model UploadBatch {
+  id              String    @id @default(cuid())
+  uploadedById    String    @map("uploaded_by_id")
+  fileName        String    @map("file_name")
+  totalRows       Int       @map("total_rows")
+  successRows     Int       @default(0) @map("success_rows")
+  failedRows      Int       @default(0) @map("failed_rows")
+  status          String    @default("PROCESSING") // PROCESSING | DONE | FAILED
+  errorLog        Json?     @map("error_log")  // Array of {row, error} objects
+  createdAt       DateTime  @default(now()) @map("created_at")
+  completedAt     DateTime? @map("completed_at")
+
+  uploadedBy      User      @relation(fields: [uploadedById], references: [id])
+  properties      Property[]
+
+  @@index([uploadedById])
+  @@index([createdAt])
+  @@map("upload_batches")
+}
+
+// ============================================================
+// INTEGRATION CONFIGS
+// Stores keys/status for WhatsApp, Meta, etc. (Phase 2+)
+// ============================================================
+
+model IntegrationConfig {
+  id            String    @id @default(cuid())
+  type          String    @unique // "WHATSAPP" | "META" | "LINKEDIN" | "YOUTUBE" | "MAGICBRICKS" | "ACRES_99"
+  isEnabled     Boolean   @default(false) @map("is_enabled")
+  credentials   Json?     // Encrypted - never store plain text secrets here, use env vars
+  config        Json?     // Non-secret config (webhook URLs, page IDs, etc.)
+  status        String    @default("DISCONNECTED") // CONNECTED | DISCONNECTED | ERROR
+  lastSyncedAt  DateTime? @map("last_synced_at")
+  lastErrorAt   DateTime? @map("last_error_at")
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("integration_configs")
+}
+
+// ============================================================
+// BLOG / AREA GUIDES (for SEO)
+// ============================================================
+
+model BlogPost {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  excerpt       String?
+  content       String    @db.Text
+  coverImageUrl String?   @map("cover_image_url")
+  areaTags      String[]  @map("area_tags")  // ["Assagao", "Anjuna"]
+  published     Boolean   @default(false)
+  publishedAt   DateTime? @map("published_at")
+  metaTitle     String?   @map("meta_title")
+  metaDesc      String?   @map("meta_desc")
+  createdById   String    @map("created_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([published, publishedAt])
+  @@map("blog_posts")
+}
+
+// ============================================================
+// AUDIT LOG
+// Records every significant action for compliance & debugging
+// ============================================================
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  userId      String?   @map("user_id")
+  action      String    // "USER_LOGIN", "PROPERTY_CREATED", "LEAD_ASSIGNED", etc.
+  entityType  String?   @map("entity_type") // "Property", "Lead", "User"
+  entityId    String?   @map("entity_id")
+  oldValues   Json?     @map("old_values")
+  newValues   Json?     @map("new_values")
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// SAVED SEARCHES & SHORTLISTS (for buyer login — Phase 5)
+// ============================================================
+
+model SavedSearch {
+  id          String    @id @default(cuid())
+  buyerEmail  String    @map("buyer_email")
+  filters     Json      // { region, taluka, propertyType, minPrice, maxPrice, bedrooms }
+  alertsOn    Boolean   @default(true) @map("alerts_on")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([buyerEmail])
+  @@map("saved_searches")
+}

@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-cormorant: 'Cormorant Garamond';
+  --font-inter: 'Inter';
+  --navy:       #1e2444;
+  --navy-deep:  #0f172a;
+  --gold:       #b59762;
+  --gold-light: #d4b87a;
+  --gold-pale:  #f0e6cc;
+  --sidebar-w:  240px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-inter), system-ui, sans-serif; color: #1a1e38; background: #f8f9fc; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+@layer components {
+  .font-display { font-family: var(--font-cormorant), Georgia, serif; }
+
+  /* CRM sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-white/60 hover:text-white hover:bg-white/[8%] transition-all duration-150 cursor-pointer;
+  }
+  .nav-item.active { @apply bg-gold/15 text-gold; }
+
+  /* Stat card */
+  .stat-card {
+    @apply bg-white rounded-xl border border-slate-100 p-5 flex flex-col gap-2;
+  }
+
+  /* Data table */
+  .data-table { @apply w-full text-[13px]; }
+  .data-table thead tr { @apply border-b border-slate-100; }
+  .data-table thead th { @apply text-[11px] font-bold tracking-[0.1em] uppercase text-slate-400 pb-3 text-left pr-4 last:pr-0; }
+  .data-table tbody tr { @apply border-b border-slate-50 hover:bg-slate-50/70 transition-colors; }
+  .data-table tbody td { @apply py-3.5 pr-4 last:pr-0 text-slate-700 align-middle; }
+
+  /* Status badge */
+  .badge {
+    @apply inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full;
+  }
+  .badge-new      { @apply bg-blue-50 text-blue-600; }
+  .badge-contacted { @apply bg-indigo-50 text-indigo-600; }
+  .badge-visit    { @apply bg-violet-50 text-violet-600; }
+  .badge-nego     { @apply bg-amber-50 text-amber-700; }
+  .badge-won      { @apply bg-green-50 text-green-700; }
+  .badge-lost     { @apply bg-red-50 text-red-500; }
+  .badge-draft    { @apply bg-slate-100 text-slate-500; }
+  .badge-pending  { @apply bg-amber-50 text-amber-600; }
+  .badge-published { @apply bg-green-50 text-green-700; }
+  .badge-archived { @apply bg-slate-100 text-slate-400; }
+
+  /* Form elements */
+  .crm-input {
+    @apply w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 bg-white focus:border-gold focus:ring-2 focus:ring-gold/10 focus:outline-none transition-all duration-150 placeholder:text-slate-400;
+  }
+  .crm-label {
+    @apply block text-[11px] font-bold tracking-[0.1em] uppercase text-slate-400 mb-1.5;
+  }
+  .crm-select {
+    @apply w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-[13.5px] text-slate-800 bg-white focus:border-gold focus:ring-2 focus:ring-gold/10 focus:outline-none transition-all duration-150 appearance-none;
+  }
+
+  /* Page header */
+  .page-header {
+    @apply flex items-start justify-between gap-4 mb-6 flex-wrap;
+  }
+  .page-title {
+    @apply font-display text-[1.6rem] font-semibold text-navy leading-tight;
+  }
+  .page-subtitle {
+    @apply text-[13px] text-slate-400 mt-0.5;
+  }
+
+  /* Btn variants */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-gold hover:bg-gold-light text-navy-deep font-semibold text-[12px] tracking-wide uppercase px-5 py-2.5 rounded-lg transition-all duration-200 whitespace-nowrap;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[12px] tracking-wide border border-slate-200 hover:border-slate-300 px-5 py-2.5 rounded-lg transition-all duration-200 whitespace-nowrap;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-[12px] tracking-wide border border-red-200 px-5 py-2.5 rounded-lg transition-all duration-200 whitespace-nowrap;
+  }
+  .btn-icon {
+    @apply p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors duration-150;
+  }
+}

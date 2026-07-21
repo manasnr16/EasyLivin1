@@ -1,0 +1,64 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+.next
+dist
+out
+build
+.turbo
+
+# Environment variables – NEVER commit these
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage
+*.lcov
+.nyc_output
+
+# Cache
+.cache
+.eslintcache
+.vercel
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Prisma
+packages/database/src/generated
+
+# Local media storage (dev)
+packages/api/uploads
+
+# Test artifacts
+test-results
+playwright-report
