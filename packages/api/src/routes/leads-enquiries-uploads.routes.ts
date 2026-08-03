@@ -30,6 +30,39 @@ leadRouter.get(
 );
 
 leadRouter.get(
+  '/stats/monthly',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const months = req.query['months'] ? Number(req.query['months']) : 6;
+      const trends = await leadService.getMonthlyLeadTrends(toUserContext(req.user!), months);
+      res.json({ success: true, data: trends });
+    } catch (err) { next(err); }
+  }
+);
+
+leadRouter.get(
+  '/stats/by-agent',
+  authorize(...ROLES.ADMIN_ONLY),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const performance = await leadService.getAgentPerformance();
+      res.json({ success: true, data: performance });
+    } catch (err) { next(err); }
+  }
+);
+
+leadRouter.get(
+  '/activity/recent',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const limit = req.query['limit'] ? Number(req.query['limit']) : 8;
+      const activity = await leadService.getRecentActivity(toUserContext(req.user!), limit);
+      res.json({ success: true, data: activity });
+    } catch (err) { next(err); }
+  }
+);
+
+leadRouter.get(
   '/',
   validateQuery(leadSearchSchema),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -130,7 +163,7 @@ enquiryRouter.post(
       // Lead.createdById / LeadActivity.userId are required FKs to a real user —
       // attribute publicly-submitted leads to the longest-standing active admin.
       const systemUser = await prisma.user.findFirst({
-        where: { role: { in: ['SUPER_ADMIN', 'CLIENT_ADMIN'] }, status: 'ACTIVE' },
+        where: { role: 'CLIENT_ADMIN', status: 'ACTIVE' },
         select: { id: true, role: true },
         orderBy: { createdAt: 'asc' },
       });

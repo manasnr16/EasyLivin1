@@ -52,6 +52,9 @@ const envSchema = z.object({
   // Optional — Phase 2+ (safe to omit in Phase 1)
   WHATSAPP_PROVIDER_API_KEY: z.string().optional(),
   META_ACCESS_TOKEN: z.string().optional(),
+
+  // Error tracking — optional; Sentry stays disabled with no DSN configured
+  SENTRY_DSN: z.string().url().optional(),
 });
 
 function loadEnv() {

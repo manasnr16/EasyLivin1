@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, ApiError, setTokens, clearTokens } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import type { User } from '@/types'
 
 interface AuthContextType {
@@ -29,15 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     ;(async () => {
-      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('crm_access_token')
-      if (!hasToken) {
-        setLoading(false)
-        return
-      }
+      // The access token lives in an httpOnly cookie the browser attaches
+      // automatically — there's no client-readable flag to check first, so
+      // we just ask the API and treat a 401 as "not logged in".
       try {
         await refreshUser()
       } catch {
-        clearTokens()
         setUser(null)
       } finally {
         setLoading(false)
@@ -47,11 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     try {
-      const data = await api.post<{ tokens: { accessToken: string; refreshToken: string } }>(
-        '/api/auth/login',
-        { email, password }
-      )
-      setTokens(data.tokens.accessToken, data.tokens.refreshToken)
+      await api.post('/api/auth/login', { email, password })
       await refreshUser()
       return { success: true }
     } catch (err) {
@@ -61,12 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     api.post('/api/auth/logout').catch(() => {})
-    clearTokens()
     setUser(null)
     router.push('/login')
   }
 
-  const isAdmin = user?.role === 'CLIENT_ADMIN' || user?.role === 'SUPER_ADMIN'
+  const isAdmin = user?.role === 'CLIENT_ADMIN'
   const isAgent = user?.role === 'SALES_EXECUTIVE'
 
   return (

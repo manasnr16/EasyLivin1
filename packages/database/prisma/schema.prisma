@@ -11,6 +11,7 @@ generator client {
   provider        = "prisma-client-js"
   output          = "../src/generated"
   previewFeatures = ["relationJoins"]
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -24,8 +25,7 @@ datasource db {
 // ============================================================
 
 enum UserRole {
-  SUPER_ADMIN      // Full platform control
-  CLIENT_ADMIN     // Urmilla - manages her team & all listings
+  CLIENT_ADMIN     // Urmilla - manages her team & all listings (sole admin role)
   SALES_EXECUTIVE  // Sees only their own assigned leads/properties
   MARKETING_MANAGER // Optional - handles campaigns
 }
@@ -37,12 +37,25 @@ enum UserStatus {
 }
 
 enum PropertyType {
-  VILLA
-  APARTMENT
-  PLOT
-  BUNGALOW
-  COMMERCIAL
-  FARMHOUSE
+  APARTMENTS_PENTHOUSES         // Apartments & Penthouses
+  BUNGALOWS_VILLAS              // Bungalows & Villas
+  PORTUGUESE_GOAN_HOUSE         // Portuguese Houses / Goan House
+  PLOTS                         // Plots
+  BEACH_RIVERSIDE_PROPERTIES    // Beach / River Side Properties
+  APPROVED_PROJECTS             // Approved Projects
+  RESORT_AND_PLOTS_FOR_RESORTS  // Resort and Plots for Resorts
+  OFFICE                        // Office
+  SHOP_SHOWROOMS                // Shop & Showrooms
+  INDUSTRIAL_SHEDS_PLOTS_GODOWN // Industrial Sheds / Plots & Godown
+  AGRICULTURE_FARM_ORCHARD_LAND // Agriculture / Farm / Orchard Land
+  VILLA                         // Villa
+  ROW_HOUSE_DUPLEX              // Row House & Duplex
+  RESTAURANT                    // Restaurant
+  RESORT_FOR_LEASE_RENT         // Resort for Lease / Rent
+  BEAUTY_PARLOUR                // Beauty Parlour
+  BOUTIQUE_RESORT               // Boutique Resort
+  HOTEL                         // Hotel
+  TREE_HOUSE_STAFF_QUARTERS     // Tree House and Staff Quarters
 }
 
 enum PropertyStatus {

@@ -12,6 +12,7 @@ import { formatPrice, formatDate, STATUS_BADGE } from '@/lib/data'
 import { api, fetcher, ApiError } from '@/lib/api'
 import { adaptProperty, type ApiProperty } from '@/lib/adapters'
 import type { PropertyStatus } from '@/types'
+import { PROPERTY_TYPES } from '@easyliving/shared'
 import clsx from 'clsx'
 
 const STATUS_LABELS: Record<PropertyStatus, string> = {
@@ -23,6 +24,10 @@ const STATUS_LABELS: Record<PropertyStatus, string> = {
   SOLD: 'Sold',
   RENTED: 'Rented',
 }
+
+const PROPERTY_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  PROPERTY_TYPES.map((t) => [t.value, t.label])
+)
 
 export default function PropertiesPage() {
   const { user, isAdmin } = useAuth()
@@ -105,8 +110,8 @@ export default function PropertiesPage() {
             className="crm-select w-auto min-w-[140px]"
           >
             <option value="all">All Types</option>
-            {['VILLA','APARTMENT','PLOT','BUNGALOW','COMMERCIAL','FARMHOUSE'].map((t) => (
-              <option key={t} value={t}>{t[0] + t.slice(1).toLowerCase()}</option>
+            {PROPERTY_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
 
@@ -176,7 +181,7 @@ export default function PropertiesPage() {
                         </td>
                         <td>
                           <span className="text-[12px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">
-                            {p.propertyType[0] + p.propertyType.slice(1).toLowerCase()}
+                            {PROPERTY_TYPE_LABELS[p.propertyType] ?? p.propertyType}
                           </span>
                         </td>
                         <td className="font-semibold text-[13px]">

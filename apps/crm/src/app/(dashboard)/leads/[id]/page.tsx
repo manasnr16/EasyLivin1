@@ -10,17 +10,12 @@ import {
   TrendingUp, Calendar, UserCog, FileText, PhoneCall,
 } from 'lucide-react'
 import {
-  formatPrice, formatDate, STAGE_LABELS, STAGE_BADGE,
+  formatPrice, formatDate, STAGE_LABELS, STAGE_BADGE, ALL_STAGES,
 } from '@/lib/data'
 import { api, fetcher, ApiError } from '@/lib/api'
 import { adaptLead, adaptProperty, type ApiLead, type ApiProperty } from '@/lib/adapters'
 import type { LeadStage, User as UserType } from '@/types'
 import clsx from 'clsx'
-
-const ALL_STAGES: LeadStage[] = [
-  'NEW', 'CONTACTED', 'SITE_VISIT_SCHEDULED', 'SITE_VISIT_DONE',
-  'NEGOTIATION', 'CLOSED_WON', 'CLOSED_LOST',
-]
 
 const ACTIVITY_ICON: Record<string, React.ElementType> = {
   stage_change: TrendingUp,

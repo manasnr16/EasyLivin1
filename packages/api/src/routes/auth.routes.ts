@@ -20,7 +20,10 @@ import {
   resetPasswordSchema, changePasswordSchema, profileUpdateSchema,
 } from '@easyliving/shared';
 import * as authService from '../services/auth/auth.service.js';
+import { sendPasswordResetEmail } from '../services/email/mailer.js';
 import { prisma } from '@easyliving/database';
+import { setAuthCookies, clearAuthCookies, REFRESH_COOKIE } from '../middleware/cookies.js';
+import { env } from '../config/env.js';
 
 const router = Router();
 
@@ -28,7 +31,8 @@ const router = Router();
 router.post('/login', validateBody(loginSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await authService.loginUser(req.body);
-    res.json({ success: true, data: result });
+    setAuthCookies(res, result.tokens);
+    res.json({ success: true, data: { user: result.user } });
   } catch (err) {
     next(err);
   }
@@ -38,7 +42,7 @@ router.post('/login', validateBody(loginSchema), async (req: Request, res: Respo
 router.post(
   '/register',
   authenticate,
-  authorize('SUPER_ADMIN', 'CLIENT_ADMIN'),
+  authorize('CLIENT_ADMIN'),
   validateBody(registerSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -54,13 +58,14 @@ router.post(
 // POST /api/auth/refresh
 router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { refreshToken } = req.body as { refreshToken?: string };
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     if (!refreshToken) {
       res.status(400).json({ success: false, error: 'Refresh token is required' });
       return;
     }
     const tokens = await authService.refreshAccessToken(refreshToken);
-    res.json({ success: true, data: tokens });
+    setAuthCookies(res, tokens);
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }
@@ -70,6 +75,7 @@ router.post('/refresh', async (req: Request, res: Response, next: NextFunction) 
 router.post('/logout', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     await authService.logoutUser(req.user!.sub);
+    clearAuthCookies(res);
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (err) {
     next(err);
@@ -84,8 +90,12 @@ router.post(
     try {
       const { email } = req.body as { email: string };
       const result = await authService.requestPasswordReset(email);
-      // TODO: trigger email with reset link
-      // Always return success to prevent user enumeration
+      if (result.token) {
+        const resetUrl = `${env.CRM_URL}/reset-password?token=${result.token}`;
+        await sendPasswordResetEmail(email, resetUrl);
+      }
+      // Always return success regardless of whether the email/send worked,
+      // to prevent user enumeration via response timing/content.
       res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
     } catch (err) {
       next(err);

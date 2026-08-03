@@ -80,6 +80,27 @@ router.post(
   }
 );
 
+// GET /api/properties/stats
+router.get('/stats', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const stats = await propertyService.getPropertyStats(toUserContext(req.user!));
+    res.json({ success: true, data: stats });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/properties/stats/monthly
+router.get('/stats/monthly', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const months = req.query['months'] ? Number(req.query['months']) : 6;
+    const trends = await propertyService.getMonthlyPropertyTrends(toUserContext(req.user!), months);
+    res.json({ success: true, data: trends });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/properties/:id
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {

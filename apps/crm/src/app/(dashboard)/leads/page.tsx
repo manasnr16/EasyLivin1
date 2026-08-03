@@ -10,23 +10,12 @@ import {
   ChevronDown, AlertCircle,
 } from 'lucide-react'
 import {
-  formatPrice, formatDate, STAGE_LABELS, STAGE_BADGE,
+  formatPrice, formatDate, STAGE_LABELS, STAGE_BADGE, SOURCE_LABELS, ALL_STAGES,
 } from '@/lib/data'
 import { api, fetcher, ApiError } from '@/lib/api'
 import { adaptLead, type ApiLead } from '@/lib/adapters'
 import type { Lead, LeadStage, User as UserType } from '@/types'
 import clsx from 'clsx'
-
-const ALL_STAGES: LeadStage[] = [
-  'NEW', 'CONTACTED', 'SITE_VISIT_SCHEDULED', 'SITE_VISIT_DONE',
-  'NEGOTIATION', 'CLOSED_WON', 'CLOSED_LOST',
-]
-
-const SOURCE_LABELS: Record<string, string> = {
-  WEBSITE: 'Website', WHATSAPP: 'WhatsApp', FACEBOOK: 'Facebook',
-  INSTAGRAM: 'Instagram', MAGICBRICKS: 'MagicBricks',
-  ACRES_99: '99acres', REFERRAL: 'Referral', WALK_IN: 'Walk-In', OTHER: 'Other',
-}
 
 export default function LeadsPage() {
   const { user, isAdmin } = useAuth()

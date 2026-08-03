@@ -6,10 +6,125 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
 import Topbar from '@/components/layout/Topbar'
-import { Save, ArrowLeft, Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react'
-import { TALUKAS, VILLAGES } from '@/lib/data'
+import { Save, ArrowLeft, Upload, X, Image as ImageIcon, Loader2, MapPin, ExternalLink } from 'lucide-react'
+import { PROPERTY_TYPES, type TalukaKey } from '@easyliving/shared'
 import { api, fetcher, ApiError } from '@/lib/api'
 import type { User as UserType } from '@/types'
+import Dropdown from '@/components/ui/Dropdown'
+
+// The exact location picklist requested for the Add Property form. Region +
+// taluka are still required by the API/DB, so each entry carries a
+// best-effort taluka/region — that part is internal plumbing only, never
+// shown in the UI (the picker itself just shows the location name).
+type RegionKey = 'NORTH_GOA' | 'SOUTH_GOA'
+const PROPERTY_LOCATIONS: { village: string; taluka: TalukaKey; region: RegionKey }[] = [
+  { village: 'Aldona', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Altinho', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Anjuna', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Aquem', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Arpora', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Ashwem', taluka: 'PERNEM', region: 'NORTH_GOA' },
+  { village: 'Assagao', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Badem', taluka: 'BICHOLIM', region: 'NORTH_GOA' },
+  { village: 'Bainguinim', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Baga', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Bambolim', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Banastarim', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Bastora', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Benaulim', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Betalbatim', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Betim', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Betul', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Bhatlem', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Bicholim', taluka: 'BICHOLIM', region: 'NORTH_GOA' },
+  { village: 'Bogmalo', taluka: 'MORMUGAO', region: 'SOUTH_GOA' },
+  { village: 'Calangute', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Campal', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Canacona', taluka: 'CANACONA', region: 'SOUTH_GOA' },
+  { village: 'Candolim', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Caranzalem', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Carmona', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Cavelossim', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Chapora', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Chicalim', taluka: 'MORMUGAO', region: 'SOUTH_GOA' },
+  { village: 'Chimbel', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Chorao', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Colva', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Colvale', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Corlim', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Corgao', taluka: 'PERNEM', region: 'NORTH_GOA' },
+  { village: 'Cortalim', taluka: 'MORMUGAO', region: 'SOUTH_GOA' },
+  { village: 'Curca', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Curchorem', taluka: 'QUEPEM', region: 'SOUTH_GOA' },
+  { village: 'Dabolim', taluka: 'MORMUGAO', region: 'SOUTH_GOA' },
+  { village: 'Diwar', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Dona Paula', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Duler', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Goa Velha', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Gogol', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Guirim', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Kadamba Plateau', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Kerim', taluka: 'PERNEM', region: 'NORTH_GOA' },
+  { village: 'Loutolim', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Mandrem', taluka: 'PERNEM', region: 'NORTH_GOA' },
+  { village: 'Mapusa', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Marcela', taluka: 'PONDA', region: 'SOUTH_GOA' },
+  { village: 'Margao', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Merces', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Miramar', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Moira', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Mopa', taluka: 'PERNEM', region: 'NORTH_GOA' },
+  { village: 'Morjim', taluka: 'PERNEM', region: 'NORTH_GOA' },
+  { village: 'Nachinola', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Nagoa', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Navelim', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Nerul', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'North Goa', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Old Goa', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Oxel', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Panjim', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Parra', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Pernem', taluka: 'PERNEM', region: 'NORTH_GOA' },
+  { village: 'Pilar', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Pilerne', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Ponda', taluka: 'PONDA', region: 'SOUTH_GOA' },
+  { village: 'Porvorim', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Porvorim Succour', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Raibander', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Reis Magos', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Saligao', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Salvador do Mundo', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Sangolda', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Siolim', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'South Goa', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'St. Cruz', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'St. Inez', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Succour', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Taleigao', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Tambdi Surla', taluka: 'SANGUEM', region: 'SOUTH_GOA' },
+  { village: 'Tivim', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Tonca', taluka: 'TISWADI', region: 'NORTH_GOA' },
+  { village: 'Uccassaim', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Valpoi', taluka: 'BICHOLIM', region: 'NORTH_GOA' },
+  { village: 'Varca', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+  { village: 'Vasco', taluka: 'MORMUGAO', region: 'SOUTH_GOA' },
+  { village: 'Vagator', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Verem', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Verla', taluka: 'BARDEZ', region: 'NORTH_GOA' },
+  { village: 'Verna', taluka: 'SALCETE', region: 'SOUTH_GOA' },
+]
+
+const LOCATION_OPTIONS = PROPERTY_LOCATIONS.map((l) => ({
+  value: l.village,
+  label: l.village,
+  taluka: l.taluka,
+  region: l.region,
+  village: l.village,
+}))
+
+function findLocationOption(taluka: string, village: string) {
+  return LOCATION_OPTIONS.find((o) => o.village === village) ?? LOCATION_OPTIONS.find((o) => o.taluka === taluka && o.village === village)
+}
 
 interface PropertyFormProps {
   propertyId?: string // undefined = new, string = edit
@@ -29,6 +144,7 @@ interface ApiPropertyDetail {
   taluka: string
   village: string
   address?: string | null
+  googleMapsUrl?: string | null
   salePrice?: string | number | null
   rentPrice?: string | number | null
   priceNegotiable: boolean
@@ -57,6 +173,7 @@ interface PropertyFormState {
   taluka: string
   village: string
   address: string
+  googleMapsUrl: string
   salePrice: string
   rentPrice: string
   priceNegotiable: boolean
@@ -84,6 +201,7 @@ const EMPTY_FORM: PropertyFormState = {
   taluka: 'BARDEZ',
   village: '',
   address: '',
+  googleMapsUrl: '',
   salePrice: '',
   rentPrice: '',
   priceNegotiable: false,
@@ -121,6 +239,7 @@ function buildPayload(form: PropertyFormState) {
     taluka: form.taluka,
     village: form.village,
     address: form.address || undefined,
+    googleMapsUrl: form.googleMapsUrl || undefined,
     salePrice: num(form.salePrice),
     rentPrice: num(form.rentPrice),
     priceNegotiable: form.priceNegotiable,
@@ -149,12 +268,15 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [activeTab, setActiveTab] = useState<'basic' | 'details' | 'media' | 'seo'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'details' | 'media'>('basic')
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [existingMedia, setExistingMedia] = useState<ExistingMedia[]>([])
 
   const { data: existing } = useSWR<ApiPropertyDetail>(isEdit ? `/api/properties/${propertyId}` : null, fetcher)
   const { data: agents } = useSWR<UserType[]>(isAdmin ? '/api/users' : null, fetcher)
+  // Only real, active sales agents are assignable — matches the Agents page
+  // (no admins, no suspended/legacy accounts showing up here).
+  const salesAgents = (agents ?? []).filter((a) => a.role === 'SALES_EXECUTIVE' && a.status === 'ACTIVE')
 
   useEffect(() => {
     if (existing) {
@@ -167,6 +289,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
         taluka: existing.taluka,
         village: existing.village,
         address: existing.address ?? '',
+        googleMapsUrl: existing.googleMapsUrl ?? '',
         salePrice: existing.salePrice != null ? String(existing.salePrice) : '',
         rentPrice: existing.rentPrice != null ? String(existing.rentPrice) : '',
         priceNegotiable: existing.priceNegotiable,
@@ -251,7 +374,14 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
     }
   }
 
-  const villages = VILLAGES[form.taluka] ?? []
+  // Value for the combined location <select>. Falls back to a synthetic
+  // option if the stored village isn't in the canonical list (e.g. legacy
+  // free-text data), so the picker never silently shows a blank selection.
+  const matchedLocation = findLocationOption(form.taluka, form.village)
+  const locationValue = matchedLocation?.value ?? form.village
+  const locationOptionsWithFallback = matchedLocation || !form.village
+    ? LOCATION_OPTIONS
+    : [{ value: form.village, label: form.village, taluka: form.taluka as TalukaKey, region: form.region, village: form.village }, ...LOCATION_OPTIONS]
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -272,7 +402,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
 
         {/* Tab nav */}
         <div className="flex gap-0 border-b border-slate-200 mb-6 overflow-x-auto">
-          {(['basic', 'details', 'media', 'seo'] as const).map((tab) => (
+          {(['basic', 'details', 'media'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -282,7 +412,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                   : 'border-transparent text-slate-500 hover:text-navy'
               }`}
             >
-              {tab === 'basic' ? 'Basic Info' : tab === 'seo' ? 'SEO & Flags' : tab === 'media' ? 'Photos & Media' : 'Property Details'}
+              {tab === 'basic' ? 'Basic Info' : tab === 'media' ? 'Photos & Media' : 'Property Details'}
             </button>
           ))}
         </div>
@@ -313,11 +443,11 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="crm-label">Property Type *</label>
-                    <select className="crm-select" value={form.propertyType} onChange={(e) => set('propertyType', e.target.value)}>
-                      {['VILLA','APARTMENT','PLOT','BUNGALOW','COMMERCIAL','FARMHOUSE'].map((t) => (
-                        <option key={t} value={t}>{t[0] + t.slice(1).toLowerCase()}</option>
-                      ))}
-                    </select>
+                    <Dropdown
+                      value={form.propertyType}
+                      onChange={(v) => set('propertyType', v)}
+                      options={PROPERTY_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                    />
                   </div>
                   <div>
                     <label className="crm-label">Listing For *</label>
@@ -329,42 +459,53 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="crm-label">Region *</label>
-                    <select className="crm-select" value={form.region} onChange={(e) => { set('region', e.target.value as 'NORTH_GOA' | 'SOUTH_GOA'); set('taluka', 'BARDEZ'); set('village', '') }}>
-                      <option value="NORTH_GOA">North Goa</option>
-                      <option value="SOUTH_GOA">South Goa</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="crm-label">Taluka *</label>
-                    <select className="crm-select" value={form.taluka} onChange={(e) => { set('taluka', e.target.value); set('village', '') }}>
-                      {TALUKAS.map((t) => <option key={t} value={t}>{t[0] + t.slice(1).toLowerCase()}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="crm-label">Village / Area *</label>
-                    {villages.length > 0 ? (
-                      <select className={`crm-select ${errors['village'] ? 'border-red-400' : ''}`} value={form.village} onChange={(e) => set('village', e.target.value)}>
-                        <option value="">Select village</option>
-                        {villages.map((v) => <option key={v} value={v}>{v}</option>)}
-                      </select>
-                    ) : (
-                      <input
-                        className={clsxInput(!!errors['village'])}
-                        value={form.village}
-                        onChange={(e) => set('village', e.target.value)}
-                        placeholder="Village name"
-                      />
-                    )}
-                    {errors['village'] && <p className="text-red-500 text-[12px] mt-1">{errors['village']}</p>}
-                  </div>
+                <div>
+                  <label className="crm-label">Property Location *</label>
+                  <Dropdown
+                    value={locationValue}
+                    error={!!errors['village']}
+                    placeholder="-Select Location-"
+                    options={locationOptionsWithFallback}
+                    onChange={(v) => {
+                      const opt = LOCATION_OPTIONS.find((o) => o.value === v)
+                      if (!opt) return
+                      setForm((f) => ({ ...f, region: opt.region, taluka: opt.taluka, village: opt.village }))
+                      if (errors['village']) setErrors((er) => { const n = { ...er }; delete n['village']; return n })
+                    }}
+                  />
+                  {errors['village'] && <p className="text-red-500 text-[12px] mt-1">{errors['village']}</p>}
                 </div>
 
                 <div>
                   <label className="crm-label">Address / Landmark</label>
                   <input className="crm-input" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Street address or landmark" />
+                </div>
+
+                <div>
+                  <label className="crm-label">Google Maps Link</label>
+                  <div className="relative">
+                    <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input
+                      type="url"
+                      className="crm-input pl-10"
+                      value={form.googleMapsUrl}
+                      onChange={(e) => set('googleMapsUrl', e.target.value)}
+                      placeholder="https://maps.app.goo.gl/..."
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Paste the &quot;Share&quot; link from Google Maps. On the public site and in the CRM this opens directly in the Google Maps app on mobile, or Google Maps in browser on desktop.
+                  </p>
+                  {form.googleMapsUrl && (
+                    <a
+                      href={form.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gold hover:underline mt-2"
+                    >
+                      <ExternalLink size={12} /> Open in Google Maps
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -420,7 +561,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                   <h3 className="text-[14px] font-semibold text-navy mb-4">Assign Agent</h3>
                   <select className="crm-select max-w-xs" value={form.assignedAgentId} onChange={(e) => set('assignedAgentId', e.target.value)}>
                     <option value="">Select agent (defaults to you)</option>
-                    {(agents ?? []).map((a) => (
+                    {salesAgents.map((a) => (
                       <option key={a.id} value={a.id}>{a.firstName} {a.lastName} — {a.locationTags?.join(', ')}</option>
                     ))}
                   </select>
@@ -582,30 +723,6 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* ── SEO ── */}
-          {activeTab === 'seo' && (
-            <div className="bg-white rounded-xl border border-slate-100 p-6 space-y-4">
-              <h3 className="text-[14px] font-semibold text-navy">SEO & Listing Flags</h3>
-
-              <div className="flex flex-wrap gap-5">
-                <label className="flex items-center gap-2 text-[13px] text-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={form.isFeatured} onChange={(e) => set('isFeatured', e.target.checked)} className="accent-gold w-4 h-4" />
-                  <div>
-                    <p className="font-semibold">Featured Property</p>
-                    <p className="text-[11px] text-slate-400">Shows in the Featured section on the public homepage</p>
-                  </div>
-                </label>
-                <label className="flex items-center gap-2 text-[13px] text-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={form.isPremium} onChange={(e) => set('isPremium', e.target.checked)} className="accent-gold w-4 h-4" />
-                  <div>
-                    <p className="font-semibold">Premium Listing</p>
-                    <p className="text-[11px] text-slate-400">Highlighted with a Premium badge on listing cards</p>
-                  </div>
-                </label>
-              </div>
             </div>
           )}
         </div>

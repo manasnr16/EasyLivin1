@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=easyliving-goa-web",
   "devCommand": "npm run dev",
   "outputDirectory": ".next",
   "regions": ["bom1"]

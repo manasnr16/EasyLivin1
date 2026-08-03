@@ -230,7 +230,7 @@ describe('enquirySchema', () => {
 describe('csvPropertyRowSchema', () => {
   const valid = {
     title: 'Studio Apartment in Calangute',
-    propertyType: 'APARTMENT',
+    propertyType: 'APARTMENTS_PENTHOUSES',
     listingType: 'RENT',
     region: 'NORTH_GOA',
     taluka: 'BARDEZ',

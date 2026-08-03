@@ -152,23 +152,29 @@ export async function createProperty(
 
   const primaryAgent = primaryAgentId ?? agentsToAssign[0];
 
+  // Admins publish immediately (they're the approver). Agents submit for
+  // review — status only flips to PUBLISHED via the admin-only approve
+  // endpoint (agents cannot self-approve their own listings).
+  const isAdmin = userCtx.role === 'CLIENT_ADMIN';
+
   const property = await prisma.property.create({
     data: {
       ...propertyData,
       slug,
       createdById: userCtx.id,
-      // Both agents and admins publish immediately — no manual approval gate.
-      status: 'PUBLISHED',
-      publishedAt: new Date(),
-      approvedAt: new Date(),
-      approvedBy: userCtx.id,
+      status: isAdmin ? 'PUBLISHED' : 'PENDING_APPROVAL',
+      ...(isAdmin && {
+        publishedAt: new Date(),
+        approvedAt: new Date(),
+        approvedBy: userCtx.id,
+      }),
       agents: {
         create: agentsToAssign.map((agentId) => ({
           agentId,
           isPrimary: agentId === primaryAgent,
         })),
       },
-    },
+    } as unknown as Prisma.PropertyUncheckedCreateInput,
     select: propertyDetailSelect,
   });
 
@@ -185,7 +191,7 @@ export async function getProperties(
   const skip = (page - 1) * limit;
 
   // Build the full WHERE clause
-  const where: Prisma.PropertyWhereInput = {
+  const where = {
     ...buildAgentScope(userCtx),
     // Non-admins browsing their own CRM see all statuses, public API filters to PUBLISHED
     ...(q && {
@@ -220,7 +226,7 @@ export async function getProperties(
         },
       ],
     }),
-  };
+  } as Prisma.PropertyWhereInput;
 
   const orderBy = ((): Prisma.PropertyOrderByWithRelationInput => {
     switch (sort) {
@@ -290,7 +296,7 @@ export async function updateProperty(
       ...propertyData,
       updatedAt: new Date(),
       // If an admin is updating, allow changing agents
-      ...(assignedAgentIds && ['SUPER_ADMIN', 'CLIENT_ADMIN'].includes(userCtx.role) && {
+      ...(assignedAgentIds && userCtx.role === 'CLIENT_ADMIN' && {
         agents: {
           deleteMany: {},
           create: assignedAgentIds.map((agentId: string) => ({
@@ -299,7 +305,7 @@ export async function updateProperty(
           })),
         },
       }),
-    },
+    } as Prisma.PropertyUpdateInput,
     select: propertyDetailSelect,
   });
 
@@ -334,6 +340,61 @@ export async function deleteProperty(id: string, userCtx: UserContext) {
   }
 
   return prisma.property.delete({ where: { id }, select: { id: true } });
+}
+
+// Status/count breakdown for the CRM dashboard + reports (role-scoped)
+export async function getPropertyStats(userCtx: UserContext) {
+  const scope = buildAgentScope(userCtx);
+
+  const [byStatus, total] = await prisma.$transaction([
+    prisma.property.groupBy({
+      by: ['status'],
+      where: scope,
+      orderBy: { status: 'asc' },
+      _count: true,
+    }),
+    prisma.property.count({ where: scope }),
+  ]);
+
+  return { byStatus, total };
+}
+
+// Properties added/published per month, last N months (role-scoped)
+export async function getMonthlyPropertyTrends(userCtx: UserContext, months = 6) {
+  const scope = buildAgentScope(userCtx);
+  const since = new Date();
+  since.setMonth(since.getMonth() - (months - 1));
+  since.setDate(1);
+  since.setHours(0, 0, 0, 0);
+
+  const rows = await prisma.property.findMany({
+    where: { ...scope, createdAt: { gte: since } },
+    select: { createdAt: true, publishedAt: true },
+  });
+
+  const buckets = new Map<string, { added: number; published: number }>();
+  for (let i = 0; i < months; i++) {
+    const d = new Date(since);
+    d.setMonth(d.getMonth() + i);
+    buckets.set(`${d.getFullYear()}-${d.getMonth()}`, { added: 0, published: 0 });
+  }
+
+  for (const row of rows) {
+    const key = `${row.createdAt.getFullYear()}-${row.createdAt.getMonth()}`;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.added += 1;
+    if (row.publishedAt) {
+      const pubKey = `${row.publishedAt.getFullYear()}-${row.publishedAt.getMonth()}`;
+      const pubBucket = buckets.get(pubKey);
+      if (pubBucket) pubBucket.published += 1;
+    }
+  }
+
+  return Array.from(buckets.entries()).map(([key, counts]) => {
+    const [year, month] = key.split('-').map(Number);
+    const label = new Date(year!, month!, 1).toLocaleDateString('en-IN', { month: 'short' });
+    return { month: label, ...counts };
+  });
 }
 
 export async function incrementViewCount(id: string) {

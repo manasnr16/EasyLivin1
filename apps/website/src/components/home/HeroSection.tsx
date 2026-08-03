@@ -100,7 +100,7 @@ export default function HeroSection() {
         </h1>
 
         <p className="text-white/70 text-[1rem] max-w-[440px] mb-6 leading-relaxed">
-          Discover exclusive villas, beachfront homes, and high-return investment properties in Goa's most sought-after locations.
+          Discover exclusive villas, beachfront homes, and high-return investment properties in Goa&apos;s most sought-after locations.
         </p>
 
         {/* Search bar */}

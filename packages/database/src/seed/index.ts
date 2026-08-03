@@ -4,7 +4,7 @@
  * Run with: npm run db:seed
  *
  * Creates:
- * 1. The super admin (Urmilla Dias)
+ * 1. The admin (Urmilla Dias)
  * 2. Two sample sales executives
  * 3. Integration config rows (disabled by default)
  * 4. A few sample properties for testing
@@ -25,7 +25,7 @@ async function hashPassword(password: string): Promise<string> {
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // ── 1. Super Admin (Urmilla Dias) ────────────────────────────
+  // ── 1. Admin (Urmilla Dias) ───────────────────────────────────
   const adminPassword = await hashPassword(
     process.env['SEED_ADMIN_PASSWORD'] ?? 'ChangeMe@123!'
   );
@@ -45,23 +45,6 @@ async function main() {
     },
   });
   console.log(`✅ Admin user: ${admin.email}`);
-
-  // ── 1b. Super Admin (platform owner, distinct from the client admin) ─
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'superadmin@easylivingoa.com' },
-    update: {},
-    create: {
-      email: 'superadmin@easylivingoa.com',
-      phone: '+919876543211',
-      passwordHash: adminPassword,
-      firstName: 'Super',
-      lastName: 'Admin',
-      role: UserRole.SUPER_ADMIN,
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-    },
-  });
-  console.log(`✅ Super admin user: ${superAdmin.email}`);
 
   // ── 2. Sample Sales Executives ───────────────────────────────
   const exec1Password = await hashPassword('Agent@123!');
@@ -163,7 +146,7 @@ async function main() {
       title: '2 BHK Apartment in Porvorim',
       slug: '2bhk-apartment-porvorim-north-goa',
       description: 'Modern 2 bedroom apartment in a gated complex at Porvorim. Ideal for families and professionals. Close to schools, hospitals and NH-66.',
-      propertyType: PropertyType.APARTMENT,
+      propertyType: PropertyType.APARTMENTS_PENTHOUSES,
       listingType: ListingType.SALE_AND_RENT,
       status: PropertyStatus.PUBLISHED,
       region: GoaRegion.NORTH_GOA,
@@ -200,7 +183,7 @@ async function main() {
       title: 'Commercial Plot in Margao',
       slug: 'commercial-plot-margao-south-goa',
       description: 'Prime commercial plot on main road in Margao. Ideal for retail, office or mixed-use development. Clear title, all approvals in place.',
-      propertyType: PropertyType.PLOT,
+      propertyType: PropertyType.PLOTS,
       listingType: ListingType.SALE,
       status: PropertyStatus.PUBLISHED,
       region: GoaRegion.SOUTH_GOA,
@@ -250,8 +233,7 @@ async function main() {
 
   console.log('\n🎉 Database seed completed successfully!');
   console.log('\nAdmin login credentials:');
-  console.log('  Email: admin@easylivingoa.com (Client Admin)');
-  console.log('  Email: superadmin@easylivingoa.com (Super Admin)');
+  console.log('  Email: admin@easylivingoa.com (Admin)');
   console.log('  Password: (set via SEED_ADMIN_PASSWORD env var, default: ChangeMe@123!)');
   console.log('\n⚠️  IMPORTANT: Change all passwords immediately after first login.\n');
 }

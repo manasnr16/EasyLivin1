@@ -130,6 +130,28 @@ export function normalisePhone(phone: string): string {
   return `+${digits}`;
 }
 
+// ── File upload safety ─────────────────────────────────────────────
+
+const SAFE_EXTENSION_BY_MIMETYPE: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'video/mp4': '.mp4',
+  'application/pdf': '.pdf',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'text/csv': '.csv',
+};
+
+/**
+ * Derives a safe, fixed file extension from the declared MIME type — never
+ * trusts the client-supplied filename, which could otherwise be used to
+ * smuggle path separators or an unexpected extension onto disk.
+ */
+export function safeExtensionForMimetype(mimetype: string): string {
+  return SAFE_EXTENSION_BY_MIMETYPE[mimetype] ?? '';
+}
+
 // ── API response helpers ──────────────────────────────────────────
 
 export interface ApiSuccess<T> {

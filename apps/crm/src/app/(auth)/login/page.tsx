@@ -3,7 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle, Mail, Lock, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
 export default function LoginPage() {
@@ -38,17 +38,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-[400px]">
-      {/* Mobile logo */}
-      <div className="lg:hidden mb-8 flex justify-center">
-        <img src="/images/logo1.png" alt="Easy Livin Goa" className="h-12 w-auto object-contain" />
-      </div>
+    <div className="w-full max-w-[360px]">
+      <div className="bg-white rounded-2xl p-6 shadow-xl shadow-slate-200/60 border border-slate-100">
+        <h1 className="font-display text-[1.5rem] font-semibold text-navy">Welcome back</h1>
+        <p className="text-[12.5px] text-slate-400 mt-0.5 mb-5">Sign in to continue to your dashboard</p>
 
-      <div className="bg-white rounded-2xl p-8 shadow-2xl border border-white/10">
-        <h1 className="font-display text-[1.7rem] font-semibold text-navy mb-1">Welcome back</h1>
-        <p className="text-slate-400 text-[13px] mb-7">Sign in to your Easy Livin CRM account</p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           {/* Error */}
           {error && (
             <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
@@ -60,15 +55,18 @@ export default function LoginPage() {
           {/* Email */}
           <div>
             <label className="crm-label">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="crm-input"
-              placeholder="you@easylivingoa.com"
-              autoComplete="email"
-              disabled={loading}
-            />
+            <div className="relative">
+              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="crm-input pl-10"
+                placeholder="you@easylivingoa.com"
+                autoComplete="email"
+                disabled={loading}
+              />
+            </div>
           </div>
 
           {/* Password */}
@@ -80,11 +78,12 @@ export default function LoginPage() {
               </Link>
             </div>
             <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="crm-input pr-10"
+                className="crm-input pl-10 pr-10"
                 placeholder="••••••••"
                 autoComplete="current-password"
                 disabled={loading}
@@ -102,7 +101,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full justify-center py-3 text-[13px] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="btn-primary w-full justify-center py-2.5 text-[13px] mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
               <><Loader2 size={15} className="animate-spin" /> Signing in...</>
@@ -113,19 +112,20 @@ export default function LoginPage() {
         </form>
 
         {/* Demo credentials hint */}
-        <div className="mt-6 pt-5 border-t border-slate-100">
-          <p className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-400 mb-3">Demo Credentials</p>
-          <div className="space-y-2">
+        <div className="mt-5 pt-4 border-t border-slate-100">
+          <p className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.1em] uppercase text-slate-400 mb-2">
+            <Sparkles size={11} className="text-gold" /> Demo Credentials
+          </p>
+          <div className="space-y-1.5">
             {[
-              { label: 'Super Admin', email: 'superadmin@easylivingoa.com', pass: 'ChangeMe@123!' },
-              { label: 'Client Admin (Urmilla)', email: 'admin@easylivingoa.com', pass: 'ChangeMe@123!' },
+              { label: 'Admin (Urmilla)', email: 'admin@easylivingoa.com', pass: 'ChangeMe@123!' },
               { label: 'Agent (Rahul)', email: 'rahul@easylivingoa.com', pass: 'Agent@123!' },
             ].map((cred) => (
               <button
                 key={cred.email}
                 type="button"
                 onClick={() => { setEmail(cred.email); setPassword(cred.pass); setError('') }}
-                className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-100"
+                className="w-full text-left px-3 py-1.5 bg-gold-pale/60 hover:bg-gold-pale rounded-lg transition-colors border border-gold/10"
               >
                 <p className="text-[12px] font-semibold text-navy">{cred.label}</p>
                 <p className="text-[11px] text-slate-400">{cred.email}</p>
@@ -135,7 +135,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <p className="text-center text-[12px] text-white/30 mt-5">
+      <p className="text-center text-[12px] text-slate-400 mt-4">
         Easy Livin Goa CRM — Internal use only
       </p>
     </div>

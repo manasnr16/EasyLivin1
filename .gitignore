@@ -9,6 +9,7 @@ dist
 out
 build
 .turbo
+*.tsbuildinfo
 
 # Environment variables – NEVER commit these
 .env
@@ -62,3 +63,4 @@ packages/api/uploads
 # Test artifacts
 test-results
 playwright-report
+.env*

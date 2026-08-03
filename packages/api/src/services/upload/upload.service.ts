@@ -17,6 +17,7 @@
 
 import * as XLSX from 'xlsx';
 import { prisma } from '@easyliving/database';
+import type { Prisma } from '@easyliving/database';
 import { csvPropertyRowSchema, parseAmenities, slugifyUnique } from '@easyliving/shared';
 import type { CsvPropertyRow } from '@easyliving/shared';
 import { logger } from '../../config/logger.js';
@@ -225,7 +226,7 @@ export async function processUploadedFile(
           agents: {
             create: [{ agentId, isPrimary: true }],
           },
-        },
+        } as unknown as Prisma.PropertyUncheckedCreateInput,
       });
 
       successRows++;
@@ -246,7 +247,7 @@ export async function processUploadedFile(
       successRows,
       failedRows: errors.length,
       status: errors.length === rawRows.length ? 'FAILED' : 'DONE',
-      errorLog: errors,
+      errorLog: errors as unknown as Prisma.InputJsonValue,
       completedAt: new Date(),
     },
   });

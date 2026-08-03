@@ -17,6 +17,7 @@ import rateLimit from 'express-rate-limit';
 
 import { env } from './config/env.js';
 import { morganStream } from './config/logger.js';
+import { Sentry } from './config/sentry.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import { authRouter } from './routes/auth.routes.js';
 import { userRouter } from './routes/user.routes.js';
@@ -81,8 +82,19 @@ export function createApp() {
     legacyHeaders: false,
   });
 
+  // Public, unauthenticated lead-capture form — tightly limited per IP to
+  // prevent spam/bot lead injection.
+  const enquiryLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    message: { success: false, error: 'Too many enquiries submitted. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/forgot-password', authLimiter);
+  app.use('/api/enquiries', enquiryLimiter);
   app.use('/api', generalLimiter);
 
   // ── Health check ──────────────────────────────────────────────
@@ -102,6 +114,7 @@ export function createApp() {
   // ── 404 & Error handling ──────────────────────────────────────
   // Must be registered AFTER all routes
   app.use(notFoundHandler);
+  if (env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
   app.use(errorHandler);
 
   return app;

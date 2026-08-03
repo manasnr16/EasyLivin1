@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
+import useSWR from 'swr'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
 import Topbar from '@/components/layout/Topbar'
 import {
   Upload, Download, FileSpreadsheet, CheckCircle, XCircle,
-  AlertCircle, Clock, Eye, ChevronRight, RefreshCw,
+  AlertCircle, RefreshCw,
 } from 'lucide-react'
-import { MOCK_BATCHES, formatDate } from '@/lib/data'
+import { formatDate } from '@/lib/data'
+import { fetcher, ApiError } from '@/lib/api'
 import clsx from 'clsx'
 
 interface RowError { row: number; errors: string[] }
@@ -21,14 +23,62 @@ interface UploadResult {
   errors: RowError[]
 }
 
+interface UploadBatch {
+  id: string
+  fileName: string
+  totalRows: number
+  successRows: number
+  failedRows: number
+  status: 'PROCESSING' | 'DONE' | 'FAILED'
+  createdAt: string
+  completedAt?: string
+  uploadedBy: { firstName: string; lastName: string }
+}
+
+// fetch()-based api.ts doesn't expose upload progress events, so the actual
+// POST here uses XHR directly (wrapped in a promise) purely to drive the
+// progress bar — same endpoint, same cookie-based auth (credentials included).
+function uploadWithProgress(file: File, onProgress: (pct: number) => void): Promise<UploadResult> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    const formData = new FormData()
+    formData.append('file', file)
+
+    xhr.open('POST', '/api/uploads/properties')
+    xhr.withCredentials = true
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    }
+
+    xhr.onload = () => {
+      let json: any = {}
+      try { json = JSON.parse(xhr.responseText) } catch { /* ignore */ }
+      if (xhr.status >= 200 && xhr.status < 300 && json.success !== false) {
+        resolve(json.data as UploadResult)
+      } else {
+        reject(new ApiError(xhr.status, json.error ?? 'Upload failed', json.code, json.details))
+      }
+    }
+    xhr.onerror = () => reject(new ApiError(0, 'Network error during upload'))
+    xhr.send(formData)
+  })
+}
+
 export default function UploadPage() {
   const { user, isAdmin } = useAuth()
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<UploadResult | null>(null)
+  const [uploadError, setUploadError] = useState('')
   const [progress, setProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { data: batches, mutate: mutateBatches } = useSWR<UploadBatch[]>(
+    isAdmin ? '/api/uploads/batches' : null,
+    fetcher
+  )
 
   if (!user || !isAdmin) {
     return (
@@ -58,6 +108,7 @@ export default function UploadPage() {
     }
     setFile(f)
     setResult(null)
+    setUploadError('')
   }
 
   function onDrop(e: React.DragEvent) {
@@ -72,45 +123,21 @@ export default function UploadPage() {
     setUploading(true)
     setProgress(0)
     setResult(null)
+    setUploadError('')
 
-    // Simulate progress + API call
-    for (let i = 10; i <= 90; i += 15) {
-      await new Promise((r) => setTimeout(r, 250))
-      setProgress(i)
+    try {
+      const data = await uploadWithProgress(file, setProgress)
+      setResult(data)
+      await mutateBatches()
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? err.message : 'Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
     }
-    // TODO Phase 3: replace simulation with real API call:
-    // const formData = new FormData()
-    // formData.append('file', file)
-    // const res = await fetch('/api/uploads/properties', { method: 'POST', body: formData, headers: { Authorization: `Bearer ${token}` } })
-    // const data = await res.json()
-
-    // Simulated result
-    await new Promise((r) => setTimeout(r, 400))
-    setProgress(100)
-    setResult({
-      batchId: 'batch-sim-001',
-      totalRows: 12,
-      successRows: 10,
-      failedRows: 2,
-      errors: [
-        { row: 5, errors: ['taluka: Invalid taluka "Gokarna" — must be one of BARDEZ, PERNEM, etc.'] },
-        { row: 9, errors: ['salePrice: Expected number, received "five crore"', 'listingType: Must be SALE, RENT, or SALE_AND_RENT'] },
-      ],
-    })
-    setUploading(false)
   }
 
   function downloadTemplate() {
-    // TODO Phase 3: fetch from GET /api/uploads/template
-    // For now create a simple CSV blob
-    const headers = ['title','propertyType','listingType','region','taluka','village','salePrice','rentPrice','bedrooms','bathrooms','areaSqFt','description','amenities','reraNumber','furnishing','agentEmail']
-    const example = ['3 BHK Villa in Vagator','VILLA','SALE','NORTH_GOA','BARDEZ','Vagator','4200000','','3','3','2200','Beautiful villa near beach','Pool|Garden|CCTV','PRGO123','fully-furnished','']
-    const csv = [headers.join(','), example.join(',')].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = 'easyliving-property-template.csv'; a.click()
-    URL.revokeObjectURL(url)
+    window.open('/api/uploads/template', '_blank')
   }
 
   return (
@@ -174,7 +201,7 @@ export default function UploadPage() {
                 <p className="text-[12px] text-green-600">{(file.size / 1024).toFixed(1)} KB · Ready to upload</p>
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); setFile(null); setResult(null); setProgress(0) }}
+                onClick={(e) => { e.stopPropagation(); setFile(null); setResult(null); setProgress(0); setUploadError('') }}
                 className="text-[12px] text-slate-400 hover:text-red-500 underline"
               >
                 Remove file
@@ -193,6 +220,12 @@ export default function UploadPage() {
             </div>
           )}
         </div>
+
+        {uploadError && (
+          <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-[13px] text-red-600 flex items-center gap-2">
+            <AlertCircle size={15} /> {uploadError}
+          </div>
+        )}
 
         {/* Upload button + progress */}
         {file && !result && (
@@ -278,46 +311,50 @@ export default function UploadPage() {
           <div className="px-5 py-4 border-b border-slate-100">
             <h3 className="text-[14px] font-semibold text-navy">Upload History</h3>
           </div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="pl-5">File</th>
-                <th>Total</th>
-                <th>Imported</th>
-                <th>Failed</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th className="pr-5">Uploaded By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_BATCHES.map((batch) => (
-                <tr key={batch.id}>
-                  <td className="pl-5">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet size={14} className="text-green-600 flex-shrink-0" />
-                      <span className="text-[12px] font-medium text-navy">{batch.fileName}</span>
-                    </div>
-                  </td>
-                  <td className="text-[13px]">{batch.totalRows}</td>
-                  <td className="text-green-600 font-semibold text-[13px]">{batch.successRows}</td>
-                  <td className={clsx('font-semibold text-[13px]', batch.failedRows > 0 ? 'text-red-500' : 'text-slate-400')}>{batch.failedRows}</td>
-                  <td>
-                    <span className={clsx('badge',
-                      batch.status === 'DONE' ? 'badge-published' :
-                      batch.status === 'FAILED' ? 'badge-lost' : 'badge-pending'
-                    )}>
-                      {batch.status}
-                    </span>
-                  </td>
-                  <td className="text-[12px] text-slate-400">{formatDate(batch.createdAt)}</td>
-                  <td className="pr-5 text-[12px] text-slate-500">
-                    {batch.uploadedBy.firstName} {batch.uploadedBy.lastName}
-                  </td>
+          {(!batches || batches.length === 0) ? (
+            <p className="text-[13px] text-slate-400 py-10 text-center">No uploads yet.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="pl-5">File</th>
+                  <th>Total</th>
+                  <th>Imported</th>
+                  <th>Failed</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th className="pr-5">Uploaded By</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {batches.map((batch) => (
+                  <tr key={batch.id}>
+                    <td className="pl-5">
+                      <div className="flex items-center gap-2">
+                        <FileSpreadsheet size={14} className="text-green-600 flex-shrink-0" />
+                        <span className="text-[12px] font-medium text-navy">{batch.fileName}</span>
+                      </div>
+                    </td>
+                    <td className="text-[13px]">{batch.totalRows}</td>
+                    <td className="text-green-600 font-semibold text-[13px]">{batch.successRows}</td>
+                    <td className={clsx('font-semibold text-[13px]', batch.failedRows > 0 ? 'text-red-500' : 'text-slate-400')}>{batch.failedRows}</td>
+                    <td>
+                      <span className={clsx('badge',
+                        batch.status === 'DONE' ? 'badge-published' :
+                        batch.status === 'FAILED' ? 'badge-lost' : 'badge-pending'
+                      )}>
+                        {batch.status}
+                      </span>
+                    </td>
+                    <td className="text-[12px] text-slate-400">{formatDate(batch.createdAt)}</td>
+                    <td className="pr-5 text-[12px] text-slate-500">
+                      {batch.uploadedBy.firstName} {batch.uploadedBy.lastName}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
       </div>

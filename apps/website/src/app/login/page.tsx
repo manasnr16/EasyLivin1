@@ -32,7 +32,7 @@ export default function LoginPage() {
             <div className="lg:col-span-2 bg-navy rounded-2xl p-8 hidden lg:block">
               <div className="mb-6">
                 <Image
-                  src="/images/logo1.png"
+                  src="/images/logo.png"
                   alt="EasyLivin Goa"
                   width={228}
                   height={288}

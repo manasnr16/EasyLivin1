@@ -17,7 +17,7 @@ import type { LeadCreateInput, LeadUpdateInput, LeadSearchInput } from '@easyliv
 
 type UserContext = { id: string; role: string };
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'CLIENT_ADMIN'];
+const ADMIN_ROLES = ['CLIENT_ADMIN'];
 
 function buildLeadScope(userCtx: UserContext): Prisma.LeadWhereInput {
   if (userCtx.role === 'SALES_EXECUTIVE') {
@@ -300,6 +300,93 @@ export async function addLeadActivity(
   });
 
   return activity;
+}
+
+// Most recent activity entries across the user's visible leads, for the
+// dashboard "Recent Activity" feed.
+export async function getRecentActivity(userCtx: UserContext, limit = 8) {
+  const scope = buildLeadScope(userCtx);
+
+  const activities = await prisma.leadActivity.findMany({
+    where: { lead: scope },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: {
+      id: true, type: true, note: true, createdAt: true,
+      lead: { select: { name: true } },
+      user: { select: { firstName: true, lastName: true } },
+    },
+  });
+
+  return activities.map((a) => ({
+    id: a.id,
+    type: a.type,
+    text: a.note ?? `${a.type.replace('_', ' ')} — ${a.lead.name}`,
+    createdAt: a.createdAt,
+    user: a.user ? `${a.user.firstName} ${a.user.lastName}` : 'System',
+  }));
+}
+
+// Leads created + won per month, last N months (role-scoped)
+export async function getMonthlyLeadTrends(userCtx: UserContext, months = 6) {
+  const scope = buildLeadScope(userCtx);
+  const since = new Date();
+  since.setMonth(since.getMonth() - (months - 1));
+  since.setDate(1);
+  since.setHours(0, 0, 0, 0);
+
+  const rows = await prisma.lead.findMany({
+    where: { ...scope, createdAt: { gte: since } },
+    select: { createdAt: true, stage: true },
+  });
+
+  const buckets = new Map<string, { leads: number; won: number }>();
+  for (let i = 0; i < months; i++) {
+    const d = new Date(since);
+    d.setMonth(d.getMonth() + i);
+    buckets.set(`${d.getFullYear()}-${d.getMonth()}`, { leads: 0, won: 0 });
+  }
+
+  for (const row of rows) {
+    const key = `${row.createdAt.getFullYear()}-${row.createdAt.getMonth()}`;
+    const bucket = buckets.get(key);
+    if (!bucket) continue;
+    bucket.leads += 1;
+    if (row.stage === 'CLOSED_WON') bucket.won += 1;
+  }
+
+  return Array.from(buckets.entries()).map(([key, counts]) => {
+    const [year, month] = key.split('-').map(Number);
+    const label = new Date(year!, month!, 1).toLocaleDateString('en-IN', { month: 'short' });
+    return { month: label, ...counts };
+  });
+}
+
+// Per-agent performance breakdown for the Reports page (admin only — callers
+// must enforce that at the route layer).
+export async function getAgentPerformance() {
+  const agents = await prisma.user.findMany({
+    where: { role: 'SALES_EXECUTIVE', status: 'ACTIVE' },
+    select: {
+      id: true, firstName: true, lastName: true,
+      _count: { select: { propertiesOwned: true, leadsAssigned: true } },
+    },
+  });
+
+  const wonCounts = await prisma.lead.groupBy({
+    by: ['assignedToId'],
+    where: { assignedToId: { not: null }, stage: 'CLOSED_WON' },
+    _count: true,
+  });
+  const wonByAgent = new Map(wonCounts.map((w) => [w.assignedToId, w._count]));
+
+  return agents.map((a) => ({
+    id: a.id,
+    name: `${a.firstName} ${a.lastName}`,
+    properties: a._count.propertiesOwned,
+    leads: a._count.leadsAssigned,
+    won: wonByAgent.get(a.id) ?? 0,
+  }));
 }
 
 export async function getLeadStats(userCtx: UserContext) {

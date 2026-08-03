@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar />
-      <div className="lg:ml-[240px] min-h-screen flex flex-col">
+      <div className="dashboard-shell min-h-screen flex flex-col">
         {children}
       </div>
     </div>

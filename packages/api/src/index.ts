@@ -6,6 +6,7 @@
  */
 
 import 'dotenv/config';
+import './config/sentry.js'; // must load before other imports — see file header
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';

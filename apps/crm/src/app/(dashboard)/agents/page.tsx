@@ -9,7 +9,7 @@ import {
   CheckCircle, XCircle, User, Trash2, Loader2,
 } from 'lucide-react'
 import { api, fetcher, ApiError } from '@/lib/api'
-import { getInitials } from '@/lib/data'
+import { getInitials, getRoleLabel } from '@/lib/data'
 import type { User as UserType } from '@/types'
 import clsx from 'clsx'
 
@@ -26,7 +26,9 @@ interface DeleteState {
 
 export default function AgentsPage() {
   const { user, isAdmin } = useAuth()
-  const { data: agents, error, isLoading, mutate } = useSWR<UserType[]>(isAdmin ? '/api/users' : null, fetcher)
+  const { data: allUsers, error, isLoading, mutate } = useSWR<UserType[]>(isAdmin ? '/api/users' : null, fetcher)
+  // The team list is for managing other agents — exclude the logged-in admin.
+  const agents = allUsers?.filter((a) => a.id !== user?.id)
 
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [registerForm, setRegisterForm] = useState({
@@ -151,7 +153,7 @@ export default function AgentsPage() {
                       </div>
                       <div>
                         <p className="font-semibold text-navy text-[14px]">{agent.firstName} {agent.lastName}</p>
-                        <p className="text-[11px] text-slate-400 capitalize">{agent.role.replace('_', ' ').toLowerCase()}</p>
+                        <p className="text-[11px] text-slate-400">{getRoleLabel(agent.role)}</p>
                       </div>
                     </div>
                     <span className={clsx('badge text-[10px]', status === 'ACTIVE' ? 'badge-published' : 'badge-lost')}>

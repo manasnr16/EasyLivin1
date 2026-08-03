@@ -88,8 +88,6 @@ export default function BlogSection() {
                 <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-3 border-t border-slate-100">
                   <span className="font-medium text-slate-500">{article.author}</span>
                   <span>·</span>
-                  <span>{article.readTime}</span>
-                  <span>·</span>
                   <span>{article.date}</span>
                 </div>
               </div>

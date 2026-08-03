@@ -14,6 +14,29 @@ import { z } from 'zod';
 
 // ── Reusable field schemas ────────────────────────────────────────
 
+// Mirrors the PropertyType enum in prisma/schema.prisma — keep in sync.
+export const PROPERTY_TYPE_VALUES = [
+  'APARTMENTS_PENTHOUSES',
+  'BUNGALOWS_VILLAS',
+  'PORTUGUESE_GOAN_HOUSE',
+  'PLOTS',
+  'BEACH_RIVERSIDE_PROPERTIES',
+  'APPROVED_PROJECTS',
+  'RESORT_AND_PLOTS_FOR_RESORTS',
+  'OFFICE',
+  'SHOP_SHOWROOMS',
+  'INDUSTRIAL_SHEDS_PLOTS_GODOWN',
+  'AGRICULTURE_FARM_ORCHARD_LAND',
+  'VILLA',
+  'ROW_HOUSE_DUPLEX',
+  'RESTAURANT',
+  'RESORT_FOR_LEASE_RENT',
+  'BEAUTY_PARLOUR',
+  'BOUTIQUE_RESORT',
+  'HOTEL',
+  'TREE_HOUSE_STAFF_QUARTERS',
+] as const;
+
 export const phoneSchema = z
   .string()
   .trim()
@@ -60,7 +83,10 @@ export const registerSchema = z.object({
   password: passwordSchema,
   firstName: z.string().trim().min(2, 'First name must be at least 2 characters').max(50),
   lastName: z.string().trim().min(2, 'Last name must be at least 2 characters').max(50),
-  role: z.enum(['SALES_EXECUTIVE', 'MARKETING_MANAGER']).default('SALES_EXECUTIVE'),
+  // Agent registration is the only user-facing creation path — CLIENT_ADMIN is
+  // the sole admin role. MARKETING_MANAGER stays in the schema for future use
+  // but is never assignable here.
+  role: z.literal('SALES_EXECUTIVE').default('SALES_EXECUTIVE'),
   locationTags: z.array(z.enum([
     'BARDEZ', 'PERNEM', 'BICHOLIM', 'TISWADI',
     'SALCETE', 'MORMUGAO', 'QUEPEM', 'SANGUEM', 'CANACONA', 'PONDA',
@@ -116,7 +142,7 @@ export const changePasswordSchema = z.object({
 const propertyBaseSchema = z.object({
   title: z.string().trim().min(5, 'Title must be at least 5 characters').max(200),
   description: z.string().trim().max(5000).optional(),
-  propertyType: z.enum(['VILLA', 'APARTMENT', 'PLOT', 'BUNGALOW', 'COMMERCIAL', 'FARMHOUSE']),
+  propertyType: z.enum(PROPERTY_TYPE_VALUES),
   listingType: z.enum(['SALE', 'RENT', 'SALE_AND_RENT']),
   region: z.enum(['NORTH_GOA', 'SOUTH_GOA']),
   taluka: z.enum([
@@ -129,6 +155,7 @@ const propertyBaseSchema = z.object({
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   pincode: z.string().regex(/^\d{6}$/, 'Enter a 6-digit pincode').optional(),
+  googleMapsUrl: z.string().trim().url('Enter a valid URL').max(500).optional().or(z.literal('')),
 
   salePrice: z.coerce.number().positive('Sale price must be positive').optional(),
   rentPrice: z.coerce.number().positive('Rent price must be positive').optional(),
@@ -191,7 +218,7 @@ export type PropertyUpdateInput = z.infer<typeof propertyUpdateSchema>;
 
 export const propertySearchSchema = paginationSchema.extend({
   listingType: z.enum(['SALE', 'RENT', 'SALE_AND_RENT']).optional(),
-  propertyType: z.enum(['VILLA', 'APARTMENT', 'PLOT', 'BUNGALOW', 'COMMERCIAL', 'FARMHOUSE']).optional(),
+  propertyType: z.enum(PROPERTY_TYPE_VALUES).optional(),
   region: z.enum(['NORTH_GOA', 'SOUTH_GOA']).optional(),
   taluka: z.string().optional(),
   village: z.string().optional(),
@@ -228,7 +255,7 @@ export const leadCreateSchema = enquirySchema.extend({
   budget: z.coerce.number().positive().optional(),
   budgetMax: z.coerce.number().positive().optional(),
   requirementNote: z.string().trim().max(2000).optional(),
-  interestedIn: z.enum(['VILLA', 'APARTMENT', 'PLOT', 'BUNGALOW', 'COMMERCIAL', 'FARMHOUSE']).optional(),
+  interestedIn: z.enum(PROPERTY_TYPE_VALUES).optional(),
   preferredRegion: z.enum(['NORTH_GOA', 'SOUTH_GOA']).optional(),
   preferredTaluka: z.string().optional(),
   assignedToId: cuidSchema.optional(),
@@ -273,8 +300,8 @@ export type LeadSearchInput = z.infer<typeof leadSearchSchema>;
 
 export const csvPropertyRowSchema = z.object({
   title: z.string().trim().min(5).max(200),
-  propertyType: z.enum(['VILLA', 'APARTMENT', 'PLOT', 'BUNGALOW', 'COMMERCIAL', 'FARMHOUSE'], {
-    errorMap: () => ({ message: 'Property type must be one of: VILLA, APARTMENT, PLOT, BUNGALOW, COMMERCIAL, FARMHOUSE' }),
+  propertyType: z.enum(PROPERTY_TYPE_VALUES, {
+    errorMap: () => ({ message: `Property type must be one of: ${PROPERTY_TYPE_VALUES.join(', ')}` }),
   }),
   listingType: z.enum(['SALE', 'RENT', 'SALE_AND_RENT'], {
     errorMap: () => ({ message: 'Listing type must be: SALE, RENT, or SALE_AND_RENT' }),

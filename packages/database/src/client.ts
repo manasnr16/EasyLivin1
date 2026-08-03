@@ -9,7 +9,7 @@
  * so only one instance ever exists. In production, a single module
  * instance is created and reused.
  */
-import { PrismaClient } from './generated';
+import { PrismaClient } from './generated/index.js';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -28,4 +28,4 @@ if (process.env['NODE_ENV'] !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-export * from './generated';
+export * from './generated/index.js';

@@ -19,7 +19,7 @@ export async function getPublicProperties(filters: PropertySearchInput) {
 
   const skip = (page - 1) * limit;
 
-  const where: Prisma.PropertyWhereInput = {
+  const where = {
     status: 'PUBLISHED',
     ...(q && {
       OR: [
@@ -43,7 +43,7 @@ export async function getPublicProperties(filters: PropertySearchInput) {
         { rentPrice: { ...(minPrice && { gte: minPrice }), ...(maxPrice && { lte: maxPrice }) } },
       ],
     }),
-  };
+  } as Prisma.PropertyWhereInput;
 
   const orderBy = ((): Prisma.PropertyOrderByWithRelationInput => {
     switch (sort) {

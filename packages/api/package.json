@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && tsc-alias",
+    "vercel-build": "npm run db:migrate --workspace=@easyliving/database && npm run build",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -15,6 +16,7 @@
   "dependencies": {
     "@easyliving/database": "*",
     "@easyliving/shared": "*",
+    "@sentry/node": "^10.67.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.3.0",
     "compression": "^1.7.4",
@@ -42,12 +44,12 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/morgan": "^1.9.9",
     "@types/multer": "^1.4.11",
-    "@types/nodemailer": "^6.4.15",
     "@types/node": "^20.14.0",
+    "@types/nodemailer": "^6.4.15",
+    "@vitest/coverage-v8": "^1.6.0",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.16.0",
     "typescript": "^5.5.0",
-    "vitest": "^1.6.0",
-    "@vitest/coverage-v8": "^1.6.0"
+    "vitest": "^1.6.0"
   }
 }

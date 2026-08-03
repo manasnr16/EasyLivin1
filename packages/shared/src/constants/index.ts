@@ -120,12 +120,25 @@ export function getVillagesForTaluka(talukaKey: TalukaKey): readonly string[] {
 // ── Property Constants ────────────────────────────────────────────
 
 export const PROPERTY_TYPES = [
+  { value: 'APARTMENTS_PENTHOUSES', label: 'Apartments & Penthouses' },
+  { value: 'BUNGALOWS_VILLAS', label: 'Bungalows & Villas' },
+  { value: 'PORTUGUESE_GOAN_HOUSE', label: 'Portuguese Houses / Goan House' },
+  { value: 'PLOTS', label: 'Plots' },
+  { value: 'BEACH_RIVERSIDE_PROPERTIES', label: 'Beach / River Side Properties' },
+  { value: 'APPROVED_PROJECTS', label: 'Approved Projects' },
+  { value: 'RESORT_AND_PLOTS_FOR_RESORTS', label: 'Resort and Plots for Resorts' },
+  { value: 'OFFICE', label: 'Office' },
+  { value: 'SHOP_SHOWROOMS', label: 'Shop & Showrooms' },
+  { value: 'INDUSTRIAL_SHEDS_PLOTS_GODOWN', label: 'Industrial Sheds / Plots & Godown' },
+  { value: 'AGRICULTURE_FARM_ORCHARD_LAND', label: 'Agriculture / Farm / Orchard Land' },
   { value: 'VILLA', label: 'Villa' },
-  { value: 'APARTMENT', label: 'Apartment' },
-  { value: 'PLOT', label: 'Plot / Land' },
-  { value: 'BUNGALOW', label: 'Bungalow' },
-  { value: 'COMMERCIAL', label: 'Commercial' },
-  { value: 'FARMHOUSE', label: 'Farmhouse' },
+  { value: 'ROW_HOUSE_DUPLEX', label: 'Row House & Duplex' },
+  { value: 'RESTAURANT', label: 'Restaurant' },
+  { value: 'RESORT_FOR_LEASE_RENT', label: 'Resort for Lease / Rent' },
+  { value: 'BEAUTY_PARLOUR', label: 'Beauty Parlour' },
+  { value: 'BOUTIQUE_RESORT', label: 'Boutique Resort' },
+  { value: 'HOTEL', label: 'Hotel' },
+  { value: 'TREE_HOUSE_STAFF_QUARTERS', label: 'Tree House and Staff Quarters' },
 ] as const;
 
 export const LISTING_TYPES = [

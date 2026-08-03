@@ -27,13 +27,13 @@ export function generateTokenPair(userId: string, email: string, role: string): 
   const accessToken = jwt.sign(
     { sub: userId, email, role },
     env.JWT_ACCESS_SECRET,
-    { expiresIn: env.JWT_ACCESS_EXPIRES_IN }
+    { expiresIn: env.JWT_ACCESS_EXPIRES_IN } as jwt.SignOptions
   );
 
   const refreshToken = jwt.sign(
     { sub: userId },
     env.JWT_REFRESH_SECRET,
-    { expiresIn: env.JWT_REFRESH_EXPIRES_IN }
+    { expiresIn: env.JWT_REFRESH_EXPIRES_IN } as jwt.SignOptions
   );
 
   return { accessToken, refreshToken };
@@ -77,7 +77,7 @@ export async function registerUser(input: RegisterInput) {
       passwordHash,
       firstName: input.firstName,
       lastName: input.lastName,
-      role: input.role as 'SALES_EXECUTIVE' | 'MARKETING_MANAGER',
+      role: input.role,
       locationTags: input.locationTags as any[] ?? [],
       resetToken: verificationToken, // Reuse field for email verification token
     },

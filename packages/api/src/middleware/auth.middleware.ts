@@ -8,7 +8,7 @@
  *                  allowed roles. Rejects with 403 if not.
  *
  * Usage in routes:
- *   router.get('/admin/users', authenticate, authorize('SUPER_ADMIN', 'CLIENT_ADMIN'), handler)
+ *   router.get('/admin/users', authenticate, authorize('CLIENT_ADMIN'), handler)
  *   router.post('/properties', authenticate, authorize('SALES_EXECUTIVE', 'CLIENT_ADMIN'), handler)
  */
 
@@ -17,6 +17,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '@easyliving/database';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
+import { ACCESS_COOKIE } from './cookies.js';
 
 export interface JwtPayload {
   sub: string;        // user id (cuid)
@@ -36,10 +37,13 @@ declare global {
 }
 
 /**
- * Extracts the bearer token from the Authorization header.
- * Returns null if not present or malformed.
+ * Extracts the access token — preferring the httpOnly cookie set at login,
+ * falling back to a Bearer header (for non-browser API clients/tests).
  */
 function extractBearerToken(req: Request): string | null {
+  const cookieToken = req.cookies?.[ACCESS_COOKIE];
+  if (cookieToken) return cookieToken;
+
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7).trim();
@@ -129,9 +133,8 @@ export function authorize(...roles: string[]) {
  * Convenience role groups for use in route definitions
  */
 export const ROLES = {
-  ADMIN_ONLY: ['SUPER_ADMIN', 'CLIENT_ADMIN'] as const,
-  ALL_STAFF: ['SUPER_ADMIN', 'CLIENT_ADMIN', 'SALES_EXECUTIVE', 'MARKETING_MANAGER'] as const,
-  SUPER_ONLY: ['SUPER_ADMIN'] as const,
+  ADMIN_ONLY: ['CLIENT_ADMIN'] as const,
+  ALL_STAFF: ['CLIENT_ADMIN', 'SALES_EXECUTIVE', 'MARKETING_MANAGER'] as const,
 };
 
 /**

@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
+// Requests go to the CRM's own origin and are proxied to the API by
+// next.config.js `rewrites()` — this keeps the auth cookies first-party
+// (required for SameSite=Strict) instead of talking cross-origin to the API.
+const API_BASE_URL = ''
 
 export class ApiError extends Error {
   code?: string
@@ -10,47 +13,26 @@ export class ApiError extends Error {
   }
 }
 
-function getAccessToken(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('crm_access_token') : null
-}
-
-function getRefreshToken(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('crm_refresh_token') : null
-}
-
-export function setTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem('crm_access_token', accessToken)
-  localStorage.setItem('crm_refresh_token', refreshToken)
-}
-
-export function clearTokens() {
-  localStorage.removeItem('crm_access_token')
-  localStorage.removeItem('crm_refresh_token')
-}
+// Auth tokens live in httpOnly cookies set by the API — the browser attaches
+// them automatically via `credentials: 'include'`. No client-side JS ever
+// touches the raw tokens (keeps them safe from XSS).
 
 async function tryRefreshToken(): Promise<boolean> {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) return false
   const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   })
-  if (!res.ok) return false
-  const json = await res.json()
-  setTokens(json.data.accessToken, json.data.refreshToken)
-  return true
+  return res.ok
 }
 
 async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
-  const token = getAccessToken()
   const isFormData = options.body instanceof FormData
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   })
@@ -58,7 +40,6 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
   if (res.status === 401 && retry) {
     const refreshed = await tryRefreshToken()
     if (refreshed) return request<T>(path, options, false)
-    clearTokens()
   }
 
   const json = await res.json().catch(() => ({}))
