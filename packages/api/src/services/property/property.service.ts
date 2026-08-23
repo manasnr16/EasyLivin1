@@ -348,7 +348,7 @@ export async function getPropertyStats(userCtx: UserContext) {
 
   const [byStatus, total] = await prisma.$transaction([
     prisma.property.groupBy({
-      by: ['status'],
+      by: ['status'] as const,
       where: scope,
       orderBy: { status: 'asc' },
       _count: true,

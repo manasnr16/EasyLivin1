@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && tsc-alias",
-    "vercel-build": "cd ../.. && npm run db:migrate --workspace=@easyliving/database && npx turbo run build --filter=@easyliving/api",
+    "vercel-build": "cd ../.. && npm run db:migrate --workspace=@easyliving/database && npx turbo run build --filter=@easyliving/api --force",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
