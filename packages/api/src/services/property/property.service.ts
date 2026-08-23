@@ -348,19 +348,19 @@ export async function getPropertyStats(userCtx: UserContext) {
 
   // Prisma's groupBy generic is complex enough that, on some TS/Prisma
   // version pairings, inferring the overload here spirals into a
-  // circular-type error (TS2615) while checking the call's arguments —
-  // even with a `by: [...] as const` tuple. The runtime call is fine
-  // either way, so pass the args through `any` to skip that inference
-  // rather than trying to satisfy it, and give the result an explicit
-  // type for our own downstream use.
-  const groupByArgs: any = {
+  // circular-type error (TS2615) — reproduced on Vercel's build even with
+  // the call's *argument* typed `any`, so the method itself (not just its
+  // argument) needs to be erased to `any` to skip that inference; the
+  // runtime call is unaffected either way.
+  const propertyAny: any = prisma.property;
+  const groupByArgs = {
     by: ['status'],
     where: scope,
     orderBy: { status: 'asc' },
     _count: true,
   };
   const [byStatus, total] = await prisma.$transaction([
-    prisma.property.groupBy(groupByArgs),
+    propertyAny.groupBy(groupByArgs),
     prisma.property.count({ where: scope }),
   ]) as unknown as [Array<{ status: string; _count: number }>, number];
 
