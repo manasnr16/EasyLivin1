@@ -373,11 +373,16 @@ export async function getAgentPerformance() {
     },
   });
 
-  const wonCounts = await prisma.lead.groupBy({
+  // See the comment on prisma.property.groupBy in property.service.ts —
+  // Prisma's groupBy generic spirals into a circular-type error (TS2615)
+  // on some TS/Prisma version pairings; erase the receiver to `any` to
+  // skip that inference rather than trying to satisfy it.
+  const leadAny: any = prisma.lead;
+  const wonCounts = await leadAny.groupBy({
     by: ['assignedToId'],
     where: { assignedToId: { not: null }, stage: 'CLOSED_WON' },
     _count: true,
-  });
+  }) as Array<{ assignedToId: string | null; _count: number }>;
   const wonByAgent = new Map(wonCounts.map((w) => [w.assignedToId, w._count]));
 
   return agents.map((a) => ({
@@ -391,15 +396,16 @@ export async function getAgentPerformance() {
 
 export async function getLeadStats(userCtx: UserContext) {
   const scope = buildLeadScope(userCtx);
+  const leadAny2: any = prisma.lead;
 
   const [byStage, bySource, total, thisWeek] = await prisma.$transaction([
-    prisma.lead.groupBy({
+    leadAny2.groupBy({
       by: ['stage'],
       where: { ...scope, status: 'ACTIVE' },
       orderBy: { stage: 'asc' },
       _count: true,
     }),
-    prisma.lead.groupBy({
+    leadAny2.groupBy({
       by: ['source'],
       where: scope,
       orderBy: { source: 'asc' },
@@ -412,7 +418,12 @@ export async function getLeadStats(userCtx: UserContext) {
         createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
     }),
-  ]);
+  ]) as unknown as [
+    Array<{ stage: string; _count: number }>,
+    Array<{ source: string; _count: number }>,
+    number,
+    number,
+  ];
 
   return { byStage, bySource, total, thisWeek };
 }
