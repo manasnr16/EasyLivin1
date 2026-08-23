@@ -170,32 +170,31 @@ export type SpecField =
   | 'plotAreaSqFt'
   | 'furnishing'
   | 'parking'
-  | 'possessionStatus'
-  | 'reraNumber';
+  | 'possessionStatus';
 
 const ALL_SPEC_FIELDS: SpecField[] = [
   'bedrooms', 'bathrooms', 'areaSqFt', 'plotAreaSqFt',
-  'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+  'furnishing', 'parking', 'possessionStatus',
 ];
 
 const RESIDENTIAL_BUILT: SpecField[] = [
-  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus',
 ];
 
 const RESIDENTIAL_WITH_PLOT: SpecField[] = [...RESIDENTIAL_BUILT, 'plotAreaSqFt'];
 
-const LAND_ONLY: SpecField[] = ['plotAreaSqFt', 'possessionStatus', 'reraNumber'];
+const LAND_ONLY: SpecField[] = ['plotAreaSqFt', 'possessionStatus'];
 
 const COMMERCIAL_BUILT: SpecField[] = [
-  'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+  'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus',
 ];
 
 const COMMERCIAL_LAND_HEAVY: SpecField[] = [
-  'areaSqFt', 'plotAreaSqFt', 'parking', 'possessionStatus', 'reraNumber',
+  'areaSqFt', 'plotAreaSqFt', 'parking', 'possessionStatus',
 ];
 
 const HOSPITALITY: SpecField[] = [
-  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus',
 ];
 
 export const FIELD_CONFIG: Record<PropertyTypeValue, SpecField[]> = {

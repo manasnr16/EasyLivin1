@@ -27,7 +27,7 @@ async function main() {
 
   // ── 1. Admin (Urmilla Dias) ───────────────────────────────────
   const adminPassword = await hashPassword(
-    process.env['SEED_ADMIN_PASSWORD'] ?? 'ChangeMe@123!'
+    process.env['SEED_ADMIN_PASSWORD'] ?? 'Admin@2026'
   );
 
   const admin = await prisma.user.upsert({
@@ -234,7 +234,7 @@ async function main() {
   console.log('\n🎉 Database seed completed successfully!');
   console.log('\nAdmin login credentials:');
   console.log('  Email: admin@easylivingoa.com (Admin)');
-  console.log('  Password: (set via SEED_ADMIN_PASSWORD env var, default: ChangeMe@123!)');
+  console.log('  Password: (set via SEED_ADMIN_PASSWORD env var, default: Admin@2026)');
   console.log('\n⚠️  IMPORTANT: Change all passwords immediately after first login.\n');
 }
 

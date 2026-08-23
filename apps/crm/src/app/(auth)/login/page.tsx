@@ -118,7 +118,7 @@ export default function LoginPage() {
           </p>
           <div className="space-y-1.5">
             {[
-              { label: 'Admin (Urmilla)', email: 'admin@easylivingoa.com', pass: 'ChangeMe@123!' },
+              { label: 'Admin (Urmilla)', email: 'admin@easylivingoa.com', pass: 'Admin@2026' },
               { label: 'Agent (Rahul)', email: 'rahul@easylivingoa.com', pass: 'Agent@123!' },
             ].map((cred) => (
               <button

@@ -195,7 +195,7 @@ const propertyBaseSchema = z.object({
 // these get hard-rejected. Everything else that FIELD_CONFIG excludes for a
 // given type is stripped silently instead (see applyFieldConfig below).
 const SIZE_COUNT_FIELDS: SpecField[] = ['bedrooms', 'bathrooms', 'areaSqFt', 'plotAreaSqFt'];
-const STRIPPABLE_FIELDS: SpecField[] = ['furnishing', 'possessionStatus', 'reraNumber'];
+const STRIPPABLE_FIELDS: SpecField[] = ['furnishing', 'possessionStatus'];
 
 /**
  * Cross-checks propertyType against the shared FIELD_CONFIG map (see

@@ -155,7 +155,6 @@ interface ApiPropertyDetail {
   plotAreaSqFt?: string | number | null
   furnishing?: string | null
   parking?: number | null
-  reraNumber?: string | null
   possessionStatus?: string | null
   description?: string | null
   amenities: string[]
@@ -184,7 +183,6 @@ interface PropertyFormState {
   plotAreaSqFt: string
   furnishing: string
   parking: string
-  reraNumber: string
   possessionStatus: string
   description: string
   amenities: string[]
@@ -212,7 +210,6 @@ const EMPTY_FORM: PropertyFormState = {
   plotAreaSqFt: '',
   furnishing: '',
   parking: '0',
-  reraNumber: '',
   possessionStatus: '',
   description: '',
   amenities: [],
@@ -261,7 +258,6 @@ function buildPayload(form: PropertyFormState) {
     plotAreaSqFt: field('plotAreaSqFt', num(form.plotAreaSqFt)),
     furnishing: field('furnishing', form.furnishing || undefined),
     parking: field('parking', num(form.parking)),
-    reraNumber: field('reraNumber', form.reraNumber || undefined),
     possessionStatus: field('possessionStatus', form.possessionStatus || undefined),
     amenities: form.amenities,
     isFeatured: form.isFeatured,
@@ -311,7 +307,6 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
         plotAreaSqFt: existing.plotAreaSqFt != null ? String(existing.plotAreaSqFt) : '',
         furnishing: existing.furnishing ?? '',
         parking: existing.parking != null ? String(existing.parking) : '0',
-        reraNumber: existing.reraNumber ?? '',
         possessionStatus: existing.possessionStatus ?? '',
         description: existing.description ?? '',
         amenities: existing.amenities ?? [],
@@ -475,7 +470,6 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                           furnishing: applicable.includes('furnishing') ? f.furnishing : '',
                           parking: applicable.includes('parking') ? f.parking : '0',
                           possessionStatus: applicable.includes('possessionStatus') ? f.possessionStatus : '',
-                          reraNumber: applicable.includes('reraNumber') ? f.reraNumber : '',
                         }))
                       }}
                       options={PROPERTY_TYPES.map((t) => ({ value: t.value, label: t.label }))}
@@ -594,7 +588,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                   <select className="crm-select max-w-xs" value={form.assignedAgentId} onChange={(e) => set('assignedAgentId', e.target.value)}>
                     <option value="">Select agent (defaults to you)</option>
                     {salesAgents.map((a) => (
-                      <option key={a.id} value={a.id}>{a.firstName} {a.lastName} — {a.locationTags?.join(', ')}</option>
+                      <option key={a.id} value={a.id}>{a.firstName}</option>
                     ))}
                   </select>
                 </div>
@@ -670,13 +664,6 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                             </select>
                           </div>
                         )}
-                      </div>
-                    )}
-
-                    {show('reraNumber') && (
-                      <div>
-                        <label className="crm-label">RERA Number</label>
-                        <input className="crm-input max-w-xs" value={form.reraNumber} onChange={(e) => set('reraNumber', e.target.value)} placeholder="e.g. PRGO123456" />
                       </div>
                     )}
                   </>
