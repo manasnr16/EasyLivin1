@@ -9,11 +9,11 @@
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
-import helmet from 'helmet';
+import * as helmetModule from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import * as rateLimitModule from 'express-rate-limit';
 
 import { env } from './config/env.js';
 import { morganStream } from './config/logger.js';
@@ -28,6 +28,16 @@ import {
   enquiryRouter,
   uploadRouter,
 } from './routes/leads-enquiries-uploads.routes.js';
+
+// helmet and express-rate-limit ship dual CJS/ESM packages whose "exports"
+// map doesn't carry a matching `types` condition for the ESM (`import`)
+// side — under this repo's tsconfig, tsc resolves their default export as a
+// non-callable namespace even though the actual CJS interop Node performs
+// at runtime always provides a callable `.default`. Reach for that
+// explicitly rather than relying on the (here, unreliable) default-import
+// interop the type checker can't verify.
+const helmet = (helmetModule as unknown as { default: typeof helmetModule.default }).default ?? (helmetModule as unknown as typeof helmetModule.default);
+const rateLimit = (rateLimitModule as unknown as { default: typeof rateLimitModule.default }).default ?? (rateLimitModule as unknown as typeof rateLimitModule.default);
 
 export function createApp() {
   const app = express();
