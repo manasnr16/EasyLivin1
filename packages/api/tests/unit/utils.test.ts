@@ -10,7 +10,7 @@ import {
   slugify, slugifyUnique, formatPriceINR, formatRentINR,
   formatArea, normalisePhone, truncate, initials,
   parseAmenities, successResponse, errorResponse,
-} from '../../packages/shared/src/utils/index';
+} from '../../../shared/src/utils/index.js';
 
 describe('slugify', () => {
   it('converts a basic title to a slug', () => {

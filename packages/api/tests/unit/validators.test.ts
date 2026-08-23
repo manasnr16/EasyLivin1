@@ -9,7 +9,7 @@ import {
   loginSchema, registerSchema, propertyCreateSchema,
   enquirySchema, csvPropertyRowSchema,
   phoneSchema, emailSchema, passwordSchema,
-} from '../../packages/shared/src/validators/index';
+} from '../../../shared/src/validators/index.js';
 
 // ── Field schemas ─────────────────────────────────────────────────
 
