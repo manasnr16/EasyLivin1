@@ -478,9 +478,14 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                   <div>
                     <label className="crm-label">Listing For *</label>
                     <select className="crm-select" value={form.listingType} onChange={(e) => set('listingType', e.target.value)}>
-                      <option value="SALE">Sale</option>
+                      <option value="SALE">Sell</option>
                       <option value="RENT">Rent / Lease</option>
-                      <option value="SALE_AND_RENT">Sale & Rent</option>
+                      {/* Not offered as a new choice, but kept selectable so editing an
+                          existing property that already has this value doesn't show a
+                          blank/invalid selection. */}
+                      {form.listingType === 'SALE_AND_RENT' && (
+                        <option value="SALE_AND_RENT">Sale & Rent</option>
+                      )}
                     </select>
                   </div>
                 </div>
