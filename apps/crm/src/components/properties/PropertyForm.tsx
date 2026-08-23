@@ -226,6 +226,12 @@ const COMMON_AMENITIES = [
   'Generator Backup', 'Solar Power', 'CCTV', 'Covered Parking',
   'Modular Kitchen', 'Gym', 'Clubhouse', 'Sea View', 'Beach Access',
   'Wi-Fi Ready', 'Gated Community', '24/7 Security',
+  // Merged from the legacy site's "Property Facilities" checklist
+  'Air-Conditioners', 'Close To The Beach', 'Health Club', 'Maintenance',
+  'Piped Gas', 'Security Grills', 'Bar & Restaurant', 'Play Ground',
+  'Wardrobes', 'Beach Near The Resort', 'Disco', 'Jacuzzi', 'Pub',
+  'Solar Water Heating', 'Car Parking', 'Kitchen Cabinets', 'Mosquito Nets',
+  'Restaurant', 'Spa', 'Casino', 'Geysers', 'Out House', 'Security', 'Sprinkler',
 ]
 
 function buildPayload(form: PropertyFormState) {
@@ -609,25 +615,25 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {show('bedrooms') && (
                           <div>
-                            <label className="crm-label">Bedrooms</label>
+                            <label className="crm-label">Number Of Bedrooms</label>
                             <input type="number" className="crm-input" value={form.bedrooms} onChange={(e) => set('bedrooms', e.target.value)} placeholder="0" min="0" max="20" />
                           </div>
                         )}
                         {show('bathrooms') && (
                           <div>
-                            <label className="crm-label">Bathrooms</label>
+                            <label className="crm-label">Number Of Toilets</label>
                             <input type="number" className="crm-input" value={form.bathrooms} onChange={(e) => set('bathrooms', e.target.value)} placeholder="0" min="0" max="20" />
                           </div>
                         )}
                         {show('areaSqFt') && (
                           <div>
-                            <label className="crm-label">Built-up Area (sq.ft)</label>
+                            <label className="crm-label">Built Up Area (sq.ft)</label>
                             <input type="number" className="crm-input" value={form.areaSqFt} onChange={(e) => set('areaSqFt', e.target.value)} placeholder="e.g. 2200" />
                           </div>
                         )}
                         {show('plotAreaSqFt') && (
                           <div>
-                            <label className="crm-label">Plot Area (sq.ft) {LAND_ONLY_PROPERTY_TYPES.includes(form.propertyType as (typeof LAND_ONLY_PROPERTY_TYPES)[number]) && '*'}</label>
+                            <label className="crm-label">Area (sq.ft) {LAND_ONLY_PROPERTY_TYPES.includes(form.propertyType as (typeof LAND_ONLY_PROPERTY_TYPES)[number]) && '*'}</label>
                             <input type="number" className={clsxInput(!!errors['plotAreaSqFt'])} value={form.plotAreaSqFt} onChange={(e) => set('plotAreaSqFt', e.target.value)} placeholder="e.g. 4500" />
                             {errors['plotAreaSqFt'] && <p className="text-red-500 text-[12px] mt-1">{errors['plotAreaSqFt']}</p>}
                           </div>
@@ -639,12 +645,12 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {show('furnishing') && (
                           <div>
-                            <label className="crm-label">Furnishing</label>
+                            <label className="crm-label">Furnished</label>
                             <select className="crm-select" value={form.furnishing} onChange={(e) => set('furnishing', e.target.value)}>
                               <option value="">Select</option>
                               <option value="unfurnished">Unfurnished</option>
-                              <option value="semi-furnished">Semi-Furnished</option>
-                              <option value="fully-furnished">Fully Furnished</option>
+                              <option value="semi-furnished">Semi Furnished</option>
+                              <option value="fully-furnished">Furnished</option>
                             </select>
                           </div>
                         )}
@@ -656,10 +662,10 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                         )}
                         {show('possessionStatus') && (
                           <div>
-                            <label className="crm-label">Possession Status</label>
+                            <label className="crm-label">Property Present Status</label>
                             <select className="crm-select" value={form.possessionStatus} onChange={(e) => set('possessionStatus', e.target.value)}>
                               <option value="">Select</option>
-                              <option value="ready">Ready to Move</option>
+                              <option value="ready">Ready</option>
                               <option value="under-construction">Under Construction</option>
                             </select>
                           </div>
