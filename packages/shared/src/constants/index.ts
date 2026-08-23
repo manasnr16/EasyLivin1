@@ -141,6 +141,120 @@ export const PROPERTY_TYPES = [
   { value: 'TREE_HOUSE_STAFF_QUARTERS', label: 'Tree House and Staff Quarters' },
 ] as const;
 
+export type PropertyTypeValue = (typeof PROPERTY_TYPES)[number]['value'];
+
+/**
+ * SPEC FIELD APPLICABILITY BY PROPERTY TYPE
+ *
+ * Not every "Property Specification" field makes sense for every property
+ * type — raw land has no bedrooms, a shop has no plot area. Rather than
+ * hardcoding conditionals inline wherever these fields are rendered or
+ * validated, every consumer (CRM Add/Edit Property form, website filters,
+ * CSV import, API validation) reads from this single map.
+ *
+ * Grouped by category (mirrors how MagicBricks/99acres/Housing.com scope
+ * their field sets per property type):
+ *  - Residential (built, no separate plot)
+ *  - Residential (built + plot)
+ *  - Land only
+ *  - Commercial (built)
+ *  - Commercial (land-heavy)
+ *  - Hospitality
+ *  - Ambiguous/mixed-use — shows the full field set rather than risk hiding
+ *    a field an agent actually needs (Approved Projects, Beach/Riverside)
+ */
+export type SpecField =
+  | 'bedrooms'
+  | 'bathrooms'
+  | 'areaSqFt'
+  | 'plotAreaSqFt'
+  | 'furnishing'
+  | 'parking'
+  | 'possessionStatus'
+  | 'reraNumber';
+
+const ALL_SPEC_FIELDS: SpecField[] = [
+  'bedrooms', 'bathrooms', 'areaSqFt', 'plotAreaSqFt',
+  'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+];
+
+const RESIDENTIAL_BUILT: SpecField[] = [
+  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+];
+
+const RESIDENTIAL_WITH_PLOT: SpecField[] = [...RESIDENTIAL_BUILT, 'plotAreaSqFt'];
+
+const LAND_ONLY: SpecField[] = ['plotAreaSqFt', 'possessionStatus', 'reraNumber'];
+
+const COMMERCIAL_BUILT: SpecField[] = [
+  'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+];
+
+const COMMERCIAL_LAND_HEAVY: SpecField[] = [
+  'areaSqFt', 'plotAreaSqFt', 'parking', 'possessionStatus', 'reraNumber',
+];
+
+const HOSPITALITY: SpecField[] = [
+  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus', 'reraNumber',
+];
+
+export const FIELD_CONFIG: Record<PropertyTypeValue, SpecField[]> = {
+  // Residential (built, no separate plot)
+  APARTMENTS_PENTHOUSES: RESIDENTIAL_BUILT,
+
+  // Residential (built + plot)
+  BUNGALOWS_VILLAS: RESIDENTIAL_WITH_PLOT,
+  PORTUGUESE_GOAN_HOUSE: RESIDENTIAL_WITH_PLOT,
+  VILLA: RESIDENTIAL_WITH_PLOT,
+  ROW_HOUSE_DUPLEX: RESIDENTIAL_WITH_PLOT,
+  // Near-universally a standalone structure on its own parcel in Goa
+  // listings (not a unit in a building), so Plot Area is realistic data
+  // an agent would have — grouped with the "+ plot" residential set.
+  TREE_HOUSE_STAFF_QUARTERS: RESIDENTIAL_WITH_PLOT,
+
+  // Land only
+  PLOTS: LAND_ONLY,
+  AGRICULTURE_FARM_ORCHARD_LAND: LAND_ONLY,
+  RESORT_AND_PLOTS_FOR_RESORTS: LAND_ONLY,
+
+  // Commercial (built)
+  OFFICE: COMMERCIAL_BUILT,
+  SHOP_SHOWROOMS: COMMERCIAL_BUILT,
+  RESTAURANT: COMMERCIAL_BUILT,
+  BEAUTY_PARLOUR: COMMERCIAL_BUILT,
+
+  // Commercial (land-heavy)
+  INDUSTRIAL_SHEDS_PLOTS_GODOWN: COMMERCIAL_LAND_HEAVY,
+
+  // Hospitality
+  HOTEL: HOSPITALITY,
+  BOUTIQUE_RESORT: HOSPITALITY,
+  RESORT_FOR_LEASE_RENT: HOSPITALITY,
+
+  // Ambiguous / mixed-use — show everything rather than hide a field an
+  // agent might need and have no way to enter that data.
+  APPROVED_PROJECTS: ALL_SPEC_FIELDS,
+  BEACH_RIVERSIDE_PROPERTIES: ALL_SPEC_FIELDS,
+};
+
+/** The spec fields applicable to a given property type. Falls back to the
+ * full field set for an unrecognised/legacy type value rather than hiding
+ * fields that might hold real data. */
+export function getFieldsForPropertyType(type: string): SpecField[] {
+  return FIELD_CONFIG[type as PropertyTypeValue] ?? ALL_SPEC_FIELDS;
+}
+
+/** Whether a given spec field should be shown/validated for a property type. */
+export function isFieldApplicable(type: string, field: SpecField): boolean {
+  return getFieldsForPropertyType(type).includes(field);
+}
+
+/** Land-only categories where Plot Area is the primary "size" field and
+ * should be required rather than optional (mirrors LAND_ONLY above). */
+export const LAND_ONLY_PROPERTY_TYPES: PropertyTypeValue[] = [
+  'PLOTS', 'AGRICULTURE_FARM_ORCHARD_LAND', 'RESORT_AND_PLOTS_FOR_RESORTS',
+];
+
 export const LISTING_TYPES = [
   { value: 'SALE', label: 'For Sale' },
   { value: 'RENT', label: 'For Rent' },

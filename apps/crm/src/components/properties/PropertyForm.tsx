@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
 import Topbar from '@/components/layout/Topbar'
 import { Save, ArrowLeft, Upload, X, Image as ImageIcon, Loader2, MapPin, ExternalLink } from 'lucide-react'
-import { PROPERTY_TYPES, type TalukaKey } from '@easyliving/shared'
+import { PROPERTY_TYPES, type TalukaKey, getFieldsForPropertyType, isFieldApplicable, LAND_ONLY_PROPERTY_TYPES, type SpecField } from '@easyliving/shared'
 import { api, fetcher, ApiError } from '@/lib/api'
 import type { User as UserType } from '@/types'
 import Dropdown from '@/components/ui/Dropdown'
@@ -230,6 +230,8 @@ const COMMON_AMENITIES = [
 
 function buildPayload(form: PropertyFormState) {
   const num = (v: string) => (v.trim() === '' ? undefined : v)
+  const applicable = getFieldsForPropertyType(form.propertyType)
+  const field = <T,>(name: SpecField, value: T): T | undefined => (applicable.includes(name) ? value : undefined)
   return {
     title: form.title,
     description: form.description || undefined,
@@ -244,14 +246,17 @@ function buildPayload(form: PropertyFormState) {
     rentPrice: num(form.rentPrice),
     priceNegotiable: form.priceNegotiable,
     priceOnRequest: form.priceOnRequest,
-    bedrooms: num(form.bedrooms),
-    bathrooms: num(form.bathrooms),
-    areaSqFt: num(form.areaSqFt),
-    plotAreaSqFt: num(form.plotAreaSqFt),
-    furnishing: form.furnishing || undefined,
-    parking: num(form.parking),
-    reraNumber: form.reraNumber || undefined,
-    possessionStatus: form.possessionStatus || undefined,
+    // Fields not applicable to the selected property type are stripped
+    // (sent as undefined) instead of forwarding stale values — e.g.
+    // bedrooms shouldn't ride along when the type is "Plots".
+    bedrooms: field('bedrooms', num(form.bedrooms)),
+    bathrooms: field('bathrooms', num(form.bathrooms)),
+    areaSqFt: field('areaSqFt', num(form.areaSqFt)),
+    plotAreaSqFt: field('plotAreaSqFt', num(form.plotAreaSqFt)),
+    furnishing: field('furnishing', form.furnishing || undefined),
+    parking: field('parking', num(form.parking)),
+    reraNumber: field('reraNumber', form.reraNumber || undefined),
+    possessionStatus: field('possessionStatus', form.possessionStatus || undefined),
     amenities: form.amenities,
     isFeatured: form.isFeatured,
     isPremium: form.isPremium,
@@ -333,6 +338,10 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
       e['salePrice'] = 'Sale price is required (or tick Price on Request)'
     if ((form.listingType === 'RENT' || form.listingType === 'SALE_AND_RENT') && !form.rentPrice)
       e['rentPrice'] = 'Rent price is required'
+    // Land-only categories (Plots, Agriculture, Resort Plots) have no
+    // built-up area — Plot Area is their primary "size" field instead.
+    if (LAND_ONLY_PROPERTY_TYPES.includes(form.propertyType as (typeof LAND_ONLY_PROPERTY_TYPES)[number]) && !form.plotAreaSqFt.trim())
+      e['plotAreaSqFt'] = 'Plot area is required for this property type'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -445,7 +454,24 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                     <label className="crm-label">Property Type *</label>
                     <Dropdown
                       value={form.propertyType}
-                      onChange={(v) => set('propertyType', v)}
+                      onChange={(v) => {
+                        // Clear spec values that no longer apply to the new
+                        // type — don't let a stale "3 bedrooms" ride along
+                        // silently when switching e.g. Villa -> Plots.
+                        const applicable = getFieldsForPropertyType(v)
+                        setForm((f) => ({
+                          ...f,
+                          propertyType: v,
+                          bedrooms: applicable.includes('bedrooms') ? f.bedrooms : '',
+                          bathrooms: applicable.includes('bathrooms') ? f.bathrooms : '',
+                          areaSqFt: applicable.includes('areaSqFt') ? f.areaSqFt : '',
+                          plotAreaSqFt: applicable.includes('plotAreaSqFt') ? f.plotAreaSqFt : '',
+                          furnishing: applicable.includes('furnishing') ? f.furnishing : '',
+                          parking: applicable.includes('parking') ? f.parking : '0',
+                          possessionStatus: applicable.includes('possessionStatus') ? f.possessionStatus : '',
+                          reraNumber: applicable.includes('reraNumber') ? f.reraNumber : '',
+                        }))
+                      }}
                       options={PROPERTY_TYPES.map((t) => ({ value: t.value, label: t.label }))}
                     />
                   </div>
@@ -575,53 +601,81 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
             <div className="bg-white rounded-xl border border-slate-100 p-6 space-y-4">
               <h3 className="text-[14px] font-semibold text-navy">Property Specifications</h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className="crm-label">Bedrooms</label>
-                  <input type="number" className="crm-input" value={form.bedrooms} onChange={(e) => set('bedrooms', e.target.value)} placeholder="0" min="0" max="20" />
-                </div>
-                <div>
-                  <label className="crm-label">Bathrooms</label>
-                  <input type="number" className="crm-input" value={form.bathrooms} onChange={(e) => set('bathrooms', e.target.value)} placeholder="0" min="0" max="20" />
-                </div>
-                <div>
-                  <label className="crm-label">Built-up Area (sq.ft)</label>
-                  <input type="number" className="crm-input" value={form.areaSqFt} onChange={(e) => set('areaSqFt', e.target.value)} placeholder="e.g. 2200" />
-                </div>
-                <div>
-                  <label className="crm-label">Plot Area (sq.ft)</label>
-                  <input type="number" className="crm-input" value={form.plotAreaSqFt} onChange={(e) => set('plotAreaSqFt', e.target.value)} placeholder="e.g. 4500" />
-                </div>
-              </div>
+              {(() => {
+                const show = (field: SpecField) => isFieldApplicable(form.propertyType, field)
+                return (
+                  <>
+                    {(show('bedrooms') || show('bathrooms') || show('areaSqFt') || show('plotAreaSqFt')) && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {show('bedrooms') && (
+                          <div>
+                            <label className="crm-label">Bedrooms</label>
+                            <input type="number" className="crm-input" value={form.bedrooms} onChange={(e) => set('bedrooms', e.target.value)} placeholder="0" min="0" max="20" />
+                          </div>
+                        )}
+                        {show('bathrooms') && (
+                          <div>
+                            <label className="crm-label">Bathrooms</label>
+                            <input type="number" className="crm-input" value={form.bathrooms} onChange={(e) => set('bathrooms', e.target.value)} placeholder="0" min="0" max="20" />
+                          </div>
+                        )}
+                        {show('areaSqFt') && (
+                          <div>
+                            <label className="crm-label">Built-up Area (sq.ft)</label>
+                            <input type="number" className="crm-input" value={form.areaSqFt} onChange={(e) => set('areaSqFt', e.target.value)} placeholder="e.g. 2200" />
+                          </div>
+                        )}
+                        {show('plotAreaSqFt') && (
+                          <div>
+                            <label className="crm-label">Plot Area (sq.ft) {LAND_ONLY_PROPERTY_TYPES.includes(form.propertyType as (typeof LAND_ONLY_PROPERTY_TYPES)[number]) && '*'}</label>
+                            <input type="number" className={clsxInput(!!errors['plotAreaSqFt'])} value={form.plotAreaSqFt} onChange={(e) => set('plotAreaSqFt', e.target.value)} placeholder="e.g. 4500" />
+                            {errors['plotAreaSqFt'] && <p className="text-red-500 text-[12px] mt-1">{errors['plotAreaSqFt']}</p>}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="crm-label">Furnishing</label>
-                  <select className="crm-select" value={form.furnishing} onChange={(e) => set('furnishing', e.target.value)}>
-                    <option value="">Select</option>
-                    <option value="unfurnished">Unfurnished</option>
-                    <option value="semi-furnished">Semi-Furnished</option>
-                    <option value="fully-furnished">Fully Furnished</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="crm-label">Parking Spots</label>
-                  <input type="number" className="crm-input" value={form.parking} onChange={(e) => set('parking', e.target.value)} min="0" max="10" />
-                </div>
-                <div>
-                  <label className="crm-label">Possession Status</label>
-                  <select className="crm-select" value={form.possessionStatus} onChange={(e) => set('possessionStatus', e.target.value)}>
-                    <option value="">Select</option>
-                    <option value="ready">Ready to Move</option>
-                    <option value="under-construction">Under Construction</option>
-                  </select>
-                </div>
-              </div>
+                    {(show('furnishing') || show('parking') || show('possessionStatus')) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {show('furnishing') && (
+                          <div>
+                            <label className="crm-label">Furnishing</label>
+                            <select className="crm-select" value={form.furnishing} onChange={(e) => set('furnishing', e.target.value)}>
+                              <option value="">Select</option>
+                              <option value="unfurnished">Unfurnished</option>
+                              <option value="semi-furnished">Semi-Furnished</option>
+                              <option value="fully-furnished">Fully Furnished</option>
+                            </select>
+                          </div>
+                        )}
+                        {show('parking') && (
+                          <div>
+                            <label className="crm-label">Parking Spots</label>
+                            <input type="number" className="crm-input" value={form.parking} onChange={(e) => set('parking', e.target.value)} min="0" max="10" />
+                          </div>
+                        )}
+                        {show('possessionStatus') && (
+                          <div>
+                            <label className="crm-label">Possession Status</label>
+                            <select className="crm-select" value={form.possessionStatus} onChange={(e) => set('possessionStatus', e.target.value)}>
+                              <option value="">Select</option>
+                              <option value="ready">Ready to Move</option>
+                              <option value="under-construction">Under Construction</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-              <div>
-                <label className="crm-label">RERA Number</label>
-                <input className="crm-input max-w-xs" value={form.reraNumber} onChange={(e) => set('reraNumber', e.target.value)} placeholder="e.g. PRGO123456" />
-              </div>
+                    {show('reraNumber') && (
+                      <div>
+                        <label className="crm-label">RERA Number</label>
+                        <input className="crm-input max-w-xs" value={form.reraNumber} onChange={(e) => set('reraNumber', e.target.value)} placeholder="e.g. PRGO123456" />
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
 
               <div>
                 <label className="crm-label">Description</label>

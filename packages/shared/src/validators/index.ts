@@ -11,6 +11,7 @@
  */
 
 import { z } from 'zod';
+import { getFieldsForPropertyType, type SpecField } from '../constants/index.js';
 
 // ── Reusable field schemas ────────────────────────────────────────
 
@@ -189,6 +190,56 @@ const propertyBaseSchema = z.object({
   primaryAgentId: cuidSchema.optional(),
 });
 
+// Fields where a positive value for a category that doesn't use them is
+// contradictory data (e.g. bedrooms: 3 on a Plot), not just an unused key —
+// these get hard-rejected. Everything else that FIELD_CONFIG excludes for a
+// given type is stripped silently instead (see applyFieldConfig below).
+const SIZE_COUNT_FIELDS: SpecField[] = ['bedrooms', 'bathrooms', 'areaSqFt', 'plotAreaSqFt'];
+const STRIPPABLE_FIELDS: SpecField[] = ['furnishing', 'possessionStatus', 'reraNumber'];
+
+/**
+ * Cross-checks propertyType against the shared FIELD_CONFIG map (see
+ * packages/shared/src/constants) so a payload can't smuggle in spec fields
+ * that don't apply to its category — closing the gap for callers that
+ * bypass the CRM form entirely (a direct API call, a future mobile client,
+ * or CSV bulk import).
+ *
+ * Soft by design: a field that's merely inapplicable but empty/zero (e.g.
+ * furnishing on a Plot, a leftover parking default) is stripped silently so
+ * existing callers that send the full object shape with unused fields as
+ * undefined keep working. Only a size/count field with an actual positive
+ * value for a category that can't have one (bedrooms: 3 on a Plot) is
+ * treated as contradictory data and rejected.
+ */
+function applyFieldConfig<T extends Record<string, unknown> & { propertyType?: string | undefined }>(
+  data: T,
+  ctx: z.RefinementCtx,
+): T {
+  if (!data.propertyType) return data;
+  const applicable = getFieldsForPropertyType(data.propertyType);
+  const result: Record<string, unknown> = { ...data };
+
+  for (const field of SIZE_COUNT_FIELDS) {
+    if (!(field in result) || applicable.includes(field)) continue;
+    const value = result[field];
+    if (typeof value === 'number' && value > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [field],
+        message: `${field} does not apply to property type ${data.propertyType} and should be left blank`,
+      });
+    } else {
+      result[field] = undefined;
+    }
+  }
+
+  for (const field of STRIPPABLE_FIELDS) {
+    if (field in result && !applicable.includes(field)) result[field] = undefined;
+  }
+
+  return result as T;
+}
+
 export const propertyCreateSchema = propertyBaseSchema.refine((data) => {
   if (data.listingType === 'SALE' || data.listingType === 'SALE_AND_RENT') {
     if (!data.priceOnRequest && !data.salePrice) {
@@ -207,13 +258,16 @@ export const propertyCreateSchema = propertyBaseSchema.refine((data) => {
 }, {
   message: 'Rent price is required for rental listings',
   path: ['rentPrice'],
-});
+}).transform(applyFieldConfig);
 
 export type PropertyCreateInput = z.infer<typeof propertyCreateSchema>;
 // A partial update doesn't need the create-time sale/rent-price refinements to
 // hold — a PATCH that only touches, say, the description shouldn't be forced
 // to also satisfy "sale price required for SALE listings".
-export const propertyUpdateSchema = propertyBaseSchema.partial();
+// applyFieldConfig only runs its cross-check when propertyType is present in
+// the payload — a PATCH that omits it (and so doesn't touch any spec fields
+// either) passes through untouched.
+export const propertyUpdateSchema = propertyBaseSchema.partial().transform(applyFieldConfig);
 export type PropertyUpdateInput = z.infer<typeof propertyUpdateSchema>;
 
 export const propertySearchSchema = paginationSchema.extend({
@@ -325,5 +379,5 @@ export const csvPropertyRowSchema = z.object({
   reraNumber: z.string().max(50).optional(),
   furnishing: z.enum(['unfurnished', 'semi-furnished', 'fully-furnished']).optional(),
   agentEmail: z.string().email().optional(), // to assign to a specific agent by email
-});
+}).transform(applyFieldConfig);
 export type CsvPropertyRow = z.infer<typeof csvPropertyRowSchema>;
