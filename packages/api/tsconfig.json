@@ -1,14 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    // Override the root config's "bundler" resolution: unlike the Next.js
-    // apps, this package has no bundler — tsc emits real Node ESM output
-    // that's run directly (`node dist/index.js`), so relative imports need
-    // NodeNext's explicit-extension resolution (already used throughout
-    // src/, e.g. `from './app.js'`). "bundler" mode doesn't reliably apply
-    // CJS/ESM default-import interop for that setup.
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
     "types": ["node"],
     "outDir": "dist",
     "rootDir": "src"
