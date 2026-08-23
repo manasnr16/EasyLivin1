@@ -33,11 +33,15 @@ import {
 // map doesn't carry a matching `types` condition for the ESM (`import`)
 // side — under this repo's tsconfig, tsc resolves their default export as a
 // non-callable namespace even though the actual CJS interop Node performs
-// at runtime always provides a callable `.default`. Reach for that
-// explicitly rather than relying on the (here, unreliable) default-import
-// interop the type checker can't verify.
-const helmet = (helmetModule as unknown as { default: typeof helmetModule.default }).default ?? (helmetModule as unknown as typeof helmetModule.default);
-const rateLimit = (rateLimitModule as unknown as { default: typeof rateLimitModule.default }).default ?? (rateLimitModule as unknown as typeof rateLimitModule.default);
+// at runtime always provides a callable `.default`. `any` here is
+// deliberate: casting to the module's own default-export type would just
+// inherit that same broken (non-callable) type, so we drop out of the type
+// checker entirely for this one handoff rather than relying on the (here,
+// unreliable) default-import interop it can't verify.
+const helmetModuleAny = helmetModule as any;
+const helmet: (options?: Record<string, unknown>) => express.RequestHandler = helmetModuleAny.default ?? helmetModuleAny;
+const rateLimitModuleAny = rateLimitModule as any;
+const rateLimit: (options?: Record<string, unknown>) => express.RequestHandler = rateLimitModuleAny.default ?? rateLimitModuleAny;
 
 export function createApp() {
   const app = express();
