@@ -276,7 +276,7 @@ uploadRouter.get('/template', (_req: Request, res: Response) => {
   ];
 
   const exampleRow = [
-    '3 BHK Villa in Vagator', 'VILLA', 'SALE', 'NORTH_GOA', 'BARDEZ', 'Vagator',
+    '3 BHK Villa in Vagator', 'BUNGALOWS_VILLAS', 'SALE', 'NORTH_GOA', 'BARDEZ', 'Vagator',
     '4200000', '', '3', '3', '2200',
     '4500', 'Beautiful villa near beach', 'Pool, Garden, CCTV', 'PRGO123456', 'fully-furnished', ''
   ];

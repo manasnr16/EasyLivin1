@@ -121,7 +121,7 @@ describe('registerSchema', () => {
 describe('propertyCreateSchema', () => {
   const valid = {
     title: 'Beautiful Villa in Vagator',
-    propertyType: 'VILLA',
+    propertyType: 'BUNGALOWS_VILLAS',
     listingType: 'SALE',
     region: 'NORTH_GOA',
     taluka: 'BARDEZ',

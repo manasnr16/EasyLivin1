@@ -131,17 +131,58 @@ export const PROPERTY_TYPES = [
   { value: 'SHOP_SHOWROOMS', label: 'Shop & Showrooms' },
   { value: 'INDUSTRIAL_SHEDS_PLOTS_GODOWN', label: 'Industrial Sheds / Plots & Godown' },
   { value: 'AGRICULTURE_FARM_ORCHARD_LAND', label: 'Agriculture / Farm / Orchard Land' },
-  { value: 'VILLA', label: 'Villa' },
   { value: 'ROW_HOUSE_DUPLEX', label: 'Row House & Duplex' },
   { value: 'RESTAURANT', label: 'Restaurant' },
   { value: 'RESORT_FOR_LEASE_RENT', label: 'Resort for Lease / Rent' },
   { value: 'BEAUTY_PARLOUR', label: 'Beauty Parlour' },
   { value: 'BOUTIQUE_RESORT', label: 'Boutique Resort' },
   { value: 'HOTEL', label: 'Hotel' },
-  { value: 'TREE_HOUSE_STAFF_QUARTERS', label: 'Tree House and Staff Quarters' },
 ] as const;
 
 export type PropertyTypeValue = (typeof PROPERTY_TYPES)[number]['value'];
+
+/**
+ * PROPERTY CATEGORY
+ *
+ * A coarser grouping over PROPERTY_TYPES, used purely for the Add Property
+ * wizard's first step (pick a category, then a narrower type list) — it is
+ * NOT a separate stored field. Deriving it from propertyType keeps a single
+ * source of truth instead of two fields that could drift out of sync.
+ */
+export const PROPERTY_CATEGORIES = [
+  { value: 'RESIDENTIAL', label: 'Residential' },
+  { value: 'COMMERCIAL', label: 'Commercial' },
+  { value: 'LAND', label: 'Land' },
+  { value: 'HOSPITALITY', label: 'Hospitality' },
+  { value: 'OTHER', label: 'Other' },
+] as const;
+
+export type PropertyCategoryValue = (typeof PROPERTY_CATEGORIES)[number]['value'];
+
+export const PROPERTY_TYPE_CATEGORY: Record<PropertyTypeValue, PropertyCategoryValue> = {
+  APARTMENTS_PENTHOUSES: 'RESIDENTIAL',
+  BUNGALOWS_VILLAS: 'RESIDENTIAL',
+  PORTUGUESE_GOAN_HOUSE: 'RESIDENTIAL',
+  ROW_HOUSE_DUPLEX: 'RESIDENTIAL',
+  PLOTS: 'LAND',
+  AGRICULTURE_FARM_ORCHARD_LAND: 'LAND',
+  RESORT_AND_PLOTS_FOR_RESORTS: 'LAND',
+  OFFICE: 'COMMERCIAL',
+  SHOP_SHOWROOMS: 'COMMERCIAL',
+  RESTAURANT: 'COMMERCIAL',
+  BEAUTY_PARLOUR: 'COMMERCIAL',
+  INDUSTRIAL_SHEDS_PLOTS_GODOWN: 'COMMERCIAL',
+  HOTEL: 'HOSPITALITY',
+  BOUTIQUE_RESORT: 'HOSPITALITY',
+  RESORT_FOR_LEASE_RENT: 'HOSPITALITY',
+  APPROVED_PROJECTS: 'OTHER',
+  BEACH_RIVERSIDE_PROPERTIES: 'OTHER',
+};
+
+/** Property types belonging to a given category, in PROPERTY_TYPES order. */
+export function getPropertyTypesForCategory(category: PropertyCategoryValue) {
+  return PROPERTY_TYPES.filter((t) => PROPERTY_TYPE_CATEGORY[t.value] === category);
+}
 
 /**
  * SPEC FIELD APPLICABILITY BY PROPERTY TYPE
@@ -166,35 +207,49 @@ export type PropertyTypeValue = (typeof PROPERTY_TYPES)[number]['value'];
 export type SpecField =
   | 'bedrooms'
   | 'bathrooms'
+  | 'balconies'
   | 'areaSqFt'
   | 'plotAreaSqFt'
+  | 'floorNumber'
+  | 'floors'
   | 'furnishing'
   | 'parking'
-  | 'possessionStatus';
+  | 'facing'
+  | 'possessionStatus'
+  | 'roadWidthFt'
+  | 'landUse';
 
 const ALL_SPEC_FIELDS: SpecField[] = [
-  'bedrooms', 'bathrooms', 'areaSqFt', 'plotAreaSqFt',
-  'furnishing', 'parking', 'possessionStatus',
+  'bedrooms', 'bathrooms', 'balconies', 'areaSqFt', 'plotAreaSqFt',
+  'floorNumber', 'floors', 'furnishing', 'parking', 'facing',
+  'possessionStatus', 'roadWidthFt', 'landUse',
 ];
 
 const RESIDENTIAL_BUILT: SpecField[] = [
-  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus',
+  'bedrooms', 'bathrooms', 'balconies', 'areaSqFt', 'floorNumber', 'floors',
+  'furnishing', 'parking', 'facing', 'possessionStatus',
 ];
 
-const RESIDENTIAL_WITH_PLOT: SpecField[] = [...RESIDENTIAL_BUILT, 'plotAreaSqFt'];
+// A standalone structure on its own plot — floor number doesn't apply (you
+// don't own "a floor" of a villa the way you own a floor of an apartment
+// building), but total floors and plot area do.
+const RESIDENTIAL_WITH_PLOT: SpecField[] = [
+  'bedrooms', 'bathrooms', 'balconies', 'areaSqFt', 'plotAreaSqFt', 'floors',
+  'furnishing', 'parking', 'facing', 'possessionStatus',
+];
 
-const LAND_ONLY: SpecField[] = ['plotAreaSqFt', 'possessionStatus'];
+const LAND_ONLY: SpecField[] = ['plotAreaSqFt', 'roadWidthFt', 'facing', 'landUse', 'possessionStatus'];
 
 const COMMERCIAL_BUILT: SpecField[] = [
-  'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus',
+  'bathrooms', 'areaSqFt', 'floorNumber', 'floors', 'furnishing', 'parking', 'facing', 'possessionStatus',
 ];
 
 const COMMERCIAL_LAND_HEAVY: SpecField[] = [
-  'areaSqFt', 'plotAreaSqFt', 'parking', 'possessionStatus',
+  'areaSqFt', 'plotAreaSqFt', 'parking', 'facing', 'possessionStatus',
 ];
 
 const HOSPITALITY: SpecField[] = [
-  'bedrooms', 'bathrooms', 'areaSqFt', 'furnishing', 'parking', 'possessionStatus',
+  'bedrooms', 'bathrooms', 'areaSqFt', 'floors', 'furnishing', 'parking', 'facing', 'possessionStatus',
 ];
 
 export const FIELD_CONFIG: Record<PropertyTypeValue, SpecField[]> = {
@@ -204,12 +259,7 @@ export const FIELD_CONFIG: Record<PropertyTypeValue, SpecField[]> = {
   // Residential (built + plot)
   BUNGALOWS_VILLAS: RESIDENTIAL_WITH_PLOT,
   PORTUGUESE_GOAN_HOUSE: RESIDENTIAL_WITH_PLOT,
-  VILLA: RESIDENTIAL_WITH_PLOT,
   ROW_HOUSE_DUPLEX: RESIDENTIAL_WITH_PLOT,
-  // Near-universally a standalone structure on its own parcel in Goa
-  // listings (not a unit in a building), so Plot Area is realistic data
-  // an agent would have — grouped with the "+ plot" residential set.
-  TREE_HOUSE_STAFF_QUARTERS: RESIDENTIAL_WITH_PLOT,
 
   // Land only
   PLOTS: LAND_ONLY,
@@ -282,18 +332,92 @@ export const FACING_OPTIONS = [
   { value: 'south-west', label: 'South West' },
 ] as const;
 
-export const COMMON_AMENITIES = [
-  'Swimming Pool', 'Private Pool', 'Garden', 'Terrace',
-  'Lift / Elevator', 'Generator Backup', 'Solar Power',
-  '24/7 Security', 'CCTV Surveillance', 'Intercom',
-  'Covered Parking', 'Open Parking', 'Visitor Parking',
-  'Modular Kitchen', 'Gym / Fitness Centre', 'Clubhouse',
-  'Children Play Area', 'Jogging Track', 'Badminton Court',
-  'Water Treatment Plant', 'Rainwater Harvesting',
-  'Wi-Fi Ready', 'Gated Community', 'Maintenance Staff',
-  'Corner Plot', 'Main Road Frontage', 'Sea View', 'Garden View',
-  'Water Connection', 'Electricity', 'RERA Registered',
+export const LAND_USE_OPTIONS = [
+  { value: 'residential', label: 'Residential' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'agricultural', label: 'Agricultural' },
+  { value: 'mixed', label: 'Mixed Use' },
+  { value: 'resort', label: 'Resort / Hospitality' },
+  { value: 'other', label: 'Other' },
 ] as const;
+
+export const SELLER_TYPES = [
+  { value: 'owner', label: 'Owner' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'builder', label: 'Builder' },
+  { value: 'developer', label: 'Developer' },
+  { value: 'company', label: 'Company' },
+] as const;
+
+export const PROPERTY_LISTING_SOURCES = [
+  { value: 'website', label: 'Website' },
+  { value: 'walk_in', label: 'Walk-In' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'builder', label: 'Builder' },
+  { value: 'other_agent', label: 'Other Agent' },
+  { value: 'existing_client', label: 'Existing Client' },
+  { value: 'other', label: 'Other' },
+] as const;
+
+export const PREFERRED_CONTACT_OPTIONS = [
+  { value: 'phone', label: 'Phone' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'email', label: 'Email' },
+] as const;
+
+/**
+ * AMENITIES — grouped for the Features step UI (compact chip groups
+ * instead of one long list). COMMON_AMENITIES below stays the flat union
+ * for anything that just needs the full list (search, CSV import, legacy
+ * data on older listings).
+ */
+export const AMENITY_GROUPS = [
+  {
+    label: 'Building & Society',
+    items: [
+      'Lift / Elevator', 'Swimming Pool', 'Gym / Fitness Centre', 'Clubhouse',
+      '24/7 Security', 'CCTV Surveillance', 'Intercom', 'Generator Backup',
+      'Children Play Area', 'Jogging Track', 'Badminton Court', 'Gated Community',
+      'Maintenance Staff',
+    ],
+  },
+  {
+    label: 'Interiors',
+    items: [
+      'Modular Kitchen', 'Wardrobes', 'Air-Conditioners', 'Geysers',
+      'Piped Gas', 'Security Grills', 'Mosquito Nets', 'Kitchen Cabinets',
+    ],
+  },
+  {
+    label: 'Parking',
+    items: ['Covered Parking', 'Open Parking', 'Visitor Parking'],
+  },
+  {
+    label: 'Utilities',
+    items: [
+      'Solar Power', 'Water Treatment Plant', 'Rainwater Harvesting',
+      'Wi-Fi Ready', 'Water Connection', 'Electricity',
+    ],
+  },
+  {
+    label: 'Goa Specials',
+    items: [
+      'Sea View', 'Garden View', 'Private Pool', 'Garden', 'Terrace',
+      'Close To The Beach', 'Beach Near The Resort', 'Beach Access',
+      'Corner Plot', 'Main Road Frontage', 'RERA Registered',
+    ],
+  },
+  {
+    label: 'Hospitality & Extras',
+    items: [
+      'Restaurant', 'Bar & Restaurant', 'Spa', 'Jacuzzi', 'Health Club',
+      'Play Ground', 'Disco', 'Pub', 'Casino', 'Solar Water Heating',
+      'Car Parking', 'Out House', 'Sprinkler', 'Security', 'Maintenance',
+    ],
+  },
+] as const;
+
+export const COMMON_AMENITIES = AMENITY_GROUPS.flatMap((g) => g.items);
 
 // ── Lead Constants ────────────────────────────────────────────────
 

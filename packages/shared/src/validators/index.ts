@@ -28,14 +28,12 @@ export const PROPERTY_TYPE_VALUES = [
   'SHOP_SHOWROOMS',
   'INDUSTRIAL_SHEDS_PLOTS_GODOWN',
   'AGRICULTURE_FARM_ORCHARD_LAND',
-  'VILLA',
   'ROW_HOUSE_DUPLEX',
   'RESTAURANT',
   'RESORT_FOR_LEASE_RENT',
   'BEAUTY_PARLOUR',
   'BOUTIQUE_RESORT',
   'HOTEL',
-  'TREE_HOUSE_STAFF_QUARTERS',
 ] as const;
 
 export const phoneSchema = z
@@ -140,6 +138,19 @@ export const changePasswordSchema = z.object({
 
 // ── Properties ───────────────────────────────────────────────────
 
+// Mirrors the GoaRegion/GoaTaluka enums in prisma/schema.prisma.
+export const GOA_TALUKA_VALUES = [
+  'BARDEZ', 'PERNEM', 'BICHOLIM', 'TISWADI',
+  'SALCETE', 'MORMUGAO', 'QUEPEM', 'SANGUEM', 'CANACONA', 'PONDA',
+] as const;
+
+// Adds a new entry to the master Property Location picklist ("Add Location +").
+export const locationCreateSchema = z.object({
+  village: z.string().trim().min(2, 'Location name must be at least 2 characters').max(100),
+  taluka: z.enum(GOA_TALUKA_VALUES),
+  region: z.enum(['NORTH_GOA', 'SOUTH_GOA']),
+});
+
 const propertyBaseSchema = z.object({
   title: z.string().trim().min(5, 'Title must be at least 5 characters').max(200),
   description: z.string().trim().max(5000).optional(),
@@ -166,17 +177,30 @@ const propertyBaseSchema = z.object({
 
   bedrooms: z.coerce.number().int().min(0).max(20).optional(),
   bathrooms: z.coerce.number().int().min(0).max(20).optional(),
+  balconies: z.coerce.number().int().min(0).max(10).optional(),
   areaSqFt: z.coerce.number().positive().optional(),
   plotAreaSqFt: z.coerce.number().positive().optional(),
-  floors: z.coerce.number().int().min(1).max(100).optional(),
+  floorNumber: z.coerce.number().int().min(-2).max(150).optional(),
+  floors: z.coerce.number().int().min(1).max(150).optional(),
   furnishing: z.enum(['unfurnished', 'semi-furnished', 'fully-furnished']).optional(),
   parking: z.coerce.number().int().min(0).max(10).default(0),
   facing: z.string().optional(),
+  roadWidthFt: z.coerce.number().int().positive().optional(),
+  landUse: z.enum(['residential', 'commercial', 'agricultural', 'mixed', 'resort', 'other']).optional(),
 
   reraNumber: z.string().trim().max(50).optional(),
   reraExpiry: z.coerce.date().optional(),
   possessionStatus: z.enum(['ready', 'under-construction']).optional(),
   possessionDate: z.coerce.date().optional(),
+
+  // Owner / seller
+  sellerType: z.enum(['owner', 'agent', 'builder', 'developer', 'company']).optional(),
+  ownerName: z.string().trim().max(120).optional(),
+  ownerPhone: phoneSchema.optional().or(z.literal('')),
+  ownerWhatsapp: phoneSchema.optional().or(z.literal('')),
+  ownerEmail: z.string().trim().email('Enter a valid email').optional().or(z.literal('')),
+  agencyName: z.string().trim().max(150).optional(),
+  listingSource: z.enum(['website', 'walk_in', 'referral', 'builder', 'other_agent', 'existing_client', 'other']).optional(),
 
   amenities: z.array(z.string()).default([]),
   isFeatured: z.coerce.boolean().default(false),
@@ -194,8 +218,12 @@ const propertyBaseSchema = z.object({
 // contradictory data (e.g. bedrooms: 3 on a Plot), not just an unused key —
 // these get hard-rejected. Everything else that FIELD_CONFIG excludes for a
 // given type is stripped silently instead (see applyFieldConfig below).
-const SIZE_COUNT_FIELDS: SpecField[] = ['bedrooms', 'bathrooms', 'areaSqFt', 'plotAreaSqFt'];
-const STRIPPABLE_FIELDS: SpecField[] = ['furnishing', 'possessionStatus'];
+const SIZE_COUNT_FIELDS: SpecField[] = [
+  'bedrooms', 'bathrooms', 'balconies', 'areaSqFt', 'plotAreaSqFt', 'roadWidthFt',
+];
+const STRIPPABLE_FIELDS: SpecField[] = [
+  'furnishing', 'possessionStatus', 'floorNumber', 'floors', 'facing', 'landUse',
+];
 
 /**
  * Cross-checks propertyType against the shared FIELD_CONFIG map (see

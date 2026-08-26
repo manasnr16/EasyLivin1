@@ -223,18 +223,32 @@ model Property {
   // Property details
   bedrooms          Int?
   bathrooms         Int?
+  balconies         Int?
   areaSqFt          Decimal?        @map("area_sq_ft") @db.Decimal(10, 2)
   plotAreaSqFt      Decimal?        @map("plot_area_sq_ft") @db.Decimal(10, 2)
-  floors            Int?
+  floorNumber       Int?            @map("floor_number") // Which floor the unit is on
+  floors            Int?            // Total floors in the building
   furnishing        String?         // "unfurnished", "semi-furnished", "fully-furnished"
   parking           Int?            @default(0)
   facing            String?         // "north", "south", "east", "west"
+  roadWidthFt       Int?            @map("road_width_ft") // Land/plots only
+  landUse           String?         @map("land_use") // "residential", "commercial", "agricultural", "mixed", "resort", "other"
 
   // Legal & compliance
   reraNumber        String?         @map("rera_number")
   reraExpiry        DateTime?       @map("rera_expiry")
   possessionStatus  String?         @map("possession_status") // "ready", "under-construction"
   possessionDate    DateTime?       @map("possession_date")
+
+  // Owner / seller (the person/entity who owns the property — distinct
+  // from the assigned CRM agent below, who is internal staff)
+  sellerType        String?         @map("seller_type") // "owner", "agent", "builder", "developer", "company"
+  ownerName         String?         @map("owner_name")
+  ownerPhone        String?         @map("owner_phone")
+  ownerWhatsapp     String?         @map("owner_whatsapp")
+  ownerEmail        String?         @map("owner_email")
+  agencyName        String?         @map("agency_name")
+  listingSource     String?         @map("listing_source") // "website", "walk_in", "referral", "builder", "other_agent", "existing_client", "other"
 
   // Flags
   isFeatured        Boolean         @default(false) @map("is_featured")
@@ -522,6 +536,25 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================================
+// LOCATIONS (master picklist for the Property Location field)
+// ============================================================
+// Single source of truth for the location dropdown on the Add/Edit
+// Property form. Seeded from the original hardcoded list; new entries
+// added via "Add Location +" land here and are immediately visible to
+// every consumer (CRM form, public site, CSV import) since they all read
+// from GET /api/locations rather than a static array.
+model Location {
+  id        String    @id @default(cuid())
+  village   String    @unique
+  taluka    GoaTaluka
+  region    GoaRegion
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([region, taluka])
+  @@map("locations")
 }
 
 // ============================================================

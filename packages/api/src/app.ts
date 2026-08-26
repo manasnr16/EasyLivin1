@@ -23,6 +23,7 @@ import { authRouter } from './routes/auth.routes.js';
 import { userRouter } from './routes/user.routes.js';
 import { propertyRouter } from './routes/property.routes.js';
 import { publicPropertyRouter } from './routes/public-property.routes.js';
+import { locationRouter } from './routes/location.routes.js';
 import {
   leadRouter,
   enquiryRouter,
@@ -121,6 +122,7 @@ export function createApp() {
   app.use('/api/users', userRouter);
   app.use('/api/properties', propertyRouter);
   app.use('/api/public/properties', publicPropertyRouter);
+  app.use('/api/locations', locationRouter);
   app.use('/api/leads', leadRouter);
   app.use('/api/enquiries', enquiryRouter);
   app.use('/api/uploads', uploadRouter);
