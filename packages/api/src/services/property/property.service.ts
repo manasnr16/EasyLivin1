@@ -119,6 +119,8 @@ export const propertyDetailSelect = {
   agencyName: true,
   listingSource: true,
   amenities: true,
+  keyFacts: true,
+  distances: true,
   isExclusive: true,
   priceNegotiable: true,
   metaTitle: true,

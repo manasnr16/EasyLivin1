@@ -62,13 +62,22 @@ export interface ApiProperty {
   priceOnRequest: boolean
   bedrooms?: number | null
   bathrooms?: number | null
+  balconies?: number | null
   areaSqFt?: string | number | null
+  plotAreaSqFt?: string | number | null
+  floorNumber?: number | null
+  floors?: number | null
+  parking?: number | null
+  facing?: string | null
+  address?: string | null
   isFeatured: boolean
   isPremium: boolean
   viewCount: number
   createdAt: string
   description?: string | null
   amenities?: string[]
+  keyFacts?: { label: string; value: string }[] | null
+  distances?: { label: string; value: string }[] | null
   furnishing?: string | null
   possessionStatus?: string | null
   media?: { url: string; thumbnailUrl?: string | null; altText?: string | null }[]

@@ -203,6 +203,8 @@ const propertyBaseSchema = z.object({
   listingSource: z.enum(['website', 'walk_in', 'referral', 'builder', 'other_agent', 'existing_client', 'other']).optional(),
 
   amenities: z.array(z.string()).default([]),
+  keyFacts: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
+  distances: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
   isFeatured: z.coerce.boolean().default(false),
   isPremium: z.coerce.boolean().default(false),
   isExclusive: z.coerce.boolean().default(false),

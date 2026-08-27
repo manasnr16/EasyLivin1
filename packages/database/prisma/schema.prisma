@@ -258,6 +258,15 @@ model Property {
   // Amenities (stored as array of strings for flexibility)
   amenities         String[]
 
+  // Free-form supplementary detail rows that don't fit a dedicated column
+  // (e.g. "Style of Toilets", "Source of Water") — [{ label, value }][].
+  // Property Details table on the public site renders whichever rows are
+  // present instead of a fixed field list, so this varies property to
+  // property without needing a schema change each time.
+  keyFacts          Json?           @map("key_facts")
+  // "Nearest Distance From Property To" table — [{ label, value }][].
+  distances         Json?
+
   // SEO
   metaTitle         String?         @map("meta_title")
   metaDescription   String?         @map("meta_description")

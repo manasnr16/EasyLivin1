@@ -5,10 +5,66 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, BedDouble, Bath, Maximize2, Phone, Mail, CheckCircle2 } from 'lucide-react'
 import EnquiryModal from '@/components/ui/EnquiryModal'
-import type { Property } from '@/types'
+import EnquiryFormInline from '@/components/ui/EnquiryFormInline'
+import type { Property, PropertyDetailRow } from '@/types'
+
+function titleCase(s: string) {
+  return s.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+// Builds the dynamic "Property Details" table — only rows the property
+// actually has data for, in a sensible order, plus any free-form keyFacts
+// the listing was entered with (e.g. "Style of Toilets", "Source of Water").
+function buildDetailRows(p: Property): PropertyDetailRow[] {
+  const rows: PropertyDetailRow[] = []
+  const push = (label: string, value: string | number | null | undefined) => {
+    if (value === null || value === undefined || value === '') return
+    rows.push({ label, value: String(value) })
+  }
+
+  push('Property Type', p.type)
+  push('Property For', p.listing === 'rent' ? 'Rent' : 'Sale')
+  push('Location', p.village ?? p.location)
+  push('Floor', p.floorNumber != null ? `${p.floorNumber}${p.totalFloors ? ` of ${p.totalFloors}` : ''}` : p.totalFloors ? `Total ${p.totalFloors}` : undefined)
+  push('Number Of Bedrooms', p.beds)
+  push('Number Of Bathrooms', p.baths)
+  push('Balconies', p.balconies)
+  push('Furnishing', p.furnishing ? titleCase(p.furnishing) : undefined)
+  push('Facing', p.facing ? titleCase(p.facing) : undefined)
+  push('Parking', p.parking ? `${p.parking} vehicle${p.parking > 1 ? 's' : ''}` : undefined)
+  push('Built-up Area', p.area !== '—' ? p.area : undefined)
+  push('Plot Area', p.plotArea)
+  push('Property Status', p.possessionStatus === 'ready' ? 'Ready to Move' : p.possessionStatus === 'under-construction' ? 'Under Construction' : undefined)
+  push('Address / Landmark', p.address)
+
+  return [...rows, ...(p.keyFacts ?? [])]
+}
+
+function DetailTable({ rows }: { rows: PropertyDetailRow[] }) {
+  // Pair rows two-per-line like the original site's Property Details table.
+  const pairs: [PropertyDetailRow, PropertyDetailRow | undefined][] = []
+  for (let i = 0; i < rows.length; i += 2) pairs.push([rows[i]!, rows[i + 1]])
+
+  return (
+    <div className="rounded-xl border border-slate-100 overflow-hidden text-[13px]">
+      {pairs.map((pair, rowIdx) => (
+        <div key={rowIdx} className={`grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 ${rowIdx % 2 === 0 ? 'bg-slate-50/60' : 'bg-white'}`}>
+          {pair.map((row, i) => row && (
+            <div key={i} className="px-5 py-3 flex items-center justify-between gap-2">
+              <span className="text-slate-400 font-medium">{row.label}</span>
+              <span className="text-navy font-semibold text-right">{row.value}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function PropertyDetailClient({ property }: { property: Property }) {
   const [enquiryOpen, setEnquiryOpen] = useState(false)
+  const detailRows = buildDetailRows(property)
+  const gallery = property.gallery?.length ? property.gallery : [{ url: property.img, altText: property.title }]
 
   return (
     <>
@@ -31,15 +87,33 @@ export default function PropertyDetailClient({ property }: { property: Property 
 
             {/* Main content */}
             <div className="lg:col-span-2">
-              {/* Hero image */}
-              <div className="relative h-[380px] rounded-2xl overflow-hidden mb-6">
-                <Image src={property.img} alt={property.title} fill className="object-cover" priority />
-                {property.badge && (
-                  <span className="absolute top-4 left-4 bg-gold text-navy-deep text-[11px] font-bold tracking-wide uppercase px-3 py-1 rounded-sm">
-                    {property.badge}
-                  </span>
-                )}
-              </div>
+              {/* Photo gallery */}
+              {gallery.length > 1 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  {gallery.map((img, i) => (
+                    <div key={i}>
+                      <div className="relative h-[220px] rounded-xl overflow-hidden">
+                        <Image src={img.url} alt={img.altText ?? property.title} fill className="object-cover" priority={i < 2} />
+                        {i === 0 && property.badge && (
+                          <span className="absolute top-3 left-3 bg-gold text-navy-deep text-[11px] font-bold tracking-wide uppercase px-3 py-1 rounded-sm">
+                            {property.badge}
+                          </span>
+                        )}
+                      </div>
+                      {img.altText && <p className="text-center text-[11.5px] text-slate-400 mt-1.5">{img.altText}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="relative h-[380px] rounded-2xl overflow-hidden mb-6">
+                  <Image src={gallery[0]!.url} alt={property.title} fill className="object-cover" priority />
+                  {property.badge && (
+                    <span className="absolute top-4 left-4 bg-gold text-navy-deep text-[11px] font-bold tracking-wide uppercase px-3 py-1 rounded-sm">
+                      {property.badge}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Title + price */}
               <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
@@ -75,73 +149,18 @@ export default function PropertyDetailClient({ property }: { property: Property 
                 </div>
               </div>
 
-              {/* ── Description ── */}
-              <div className="border-t border-slate-100 pt-6">
-                <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Description</h2>
-                <div className="text-slate-500 text-[13.5px] leading-relaxed space-y-3">
-                  {(property.description ?? `A premium ${property.type.toLowerCase()} located in ${property.location}. Contact EasyLivin Goa for more details and to arrange a viewing.`)
-                    .split('\n\n')
-                    .map((para, i) => <p key={i}>{para}</p>)}
-                </div>
-              </div>
-
-              {/* ── Overview ── */}
-              <div className="border-t border-slate-100 pt-6">
-                <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Overview</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: <span className="w-3 h-3 rounded-full bg-gold/80 inline-block" />, label: 'Type', value: property.type },
-                      { icon: <Bath size={14} className="text-gold" />, label: 'Bathrooms', value: property.baths != null ? String(property.baths) : '—' },
-                      { icon: <BedDouble size={14} className="text-gold" />, label: 'Rooms', value: property.beds != null ? String(property.beds) : '—' },
-                      { icon: <Maximize2 size={14} className="text-gold" />, label: 'Area Size', value: property.area },
-                    ].map(({ icon, label, value }) => (
-                      <div key={label} className="bg-slate-50 rounded-lg px-4 py-3 flex items-center gap-3 border border-slate-100">
-                        <div className="flex-shrink-0">{icon}</div>
-                        <div>
-                          <p className="text-[11px] text-slate-400 leading-none mb-0.5">{label}</p>
-                          <p className="text-[13px] font-semibold text-navy">{value}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="rounded-xl overflow-hidden border border-slate-100 h-[200px] sm:h-auto min-h-[180px]">
-                    <iframe
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(property.location + ', Goa, India')}&output=embed&z=14`}
-                      className="w-full h-full border-0"
-                      loading="lazy"
-                      title={`Map showing ${property.location}`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Details ── */}
-              <div className="border-t border-slate-100 pt-6">
-                <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Details</h2>
-                <div className="rounded-xl border border-slate-100 overflow-hidden text-[13px]">
-                  {[
-                    [{ label: 'Price', value: property.price + (property.priceNote ?? '') }, { label: 'Property Size', value: property.area }],
-                    [{ label: 'Rooms', value: property.beds != null ? `${property.beds}` : '—' }, { label: 'Bathroom', value: property.baths != null ? `${property.baths}` : '—' }],
-                    [{ label: 'Type', value: property.type }, { label: 'Property Status', value: property.propertyStatus ?? '—' }],
-                    [{ label: 'Location', value: property.location }, { label: 'Seller Type', value: property.sellerType }],
-                  ].map((row, rowIdx) => (
-                    <div key={rowIdx} className={`grid grid-cols-2 divide-x divide-slate-100 ${rowIdx % 2 === 0 ? 'bg-slate-50/60' : 'bg-white'}`}>
-                      {row.map(({ label, value }, i) => (
-                        <div key={i} className="px-5 py-3 flex items-center justify-between gap-2">
-                          <span className="text-slate-400 font-medium">{label}</span>
-                          <span className="text-navy font-semibold text-right">{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Features ── */}
-              {property.features && Object.values(property.features).some(arr => arr && arr.length > 0) && (
+              {/* ── Property Details ── */}
+              {detailRows.length > 0 && (
                 <div className="border-t border-slate-100 pt-6">
-                  <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Features</h2>
+                  <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Property Details</h2>
+                  <DetailTable rows={detailRows} />
+                </div>
+              )}
+
+              {/* ── Property Amenities ── */}
+              {property.features && Object.values(property.features).some((arr) => arr && arr.length > 0) && (
+                <div className="border-t border-slate-100 pt-6 mt-6">
+                  <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Property Amenities</h2>
                   <div className="space-y-5">
                     {[
                       { key: 'facilitiesAndConvenience', label: 'Facilities & Convenience' },
@@ -167,6 +186,48 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   </div>
                 </div>
               )}
+
+              {/* ── Nearest Distance From Property To ── */}
+              {property.distances && property.distances.length > 0 && (
+                <div className="border-t border-slate-100 pt-6 mt-6">
+                  <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Nearest Distance From Property To</h2>
+                  <DetailTable rows={property.distances} />
+                </div>
+              )}
+
+              {/* ── Property Value ── */}
+              <div className="border-t border-slate-100 pt-6 mt-6">
+                <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Property Value</h2>
+                <DetailTable rows={[{ label: property.listing === 'rent' ? 'Expected Rent' : 'Price', value: property.price + (property.priceNote ?? '') }]} />
+              </div>
+
+              {/* ── Property Overview ── */}
+              <div className="border-t border-slate-100 pt-6 mt-6">
+                <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Property Overview</h2>
+                <div className="text-slate-500 text-[13.5px] leading-relaxed space-y-3">
+                  {(property.description ?? `A premium ${property.type.toLowerCase()} located in ${property.location}. Contact EasyLivin Goa for more details and to arrange a viewing.`)
+                    .split('\n\n')
+                    .map((para, i) => <p key={i}>{para}</p>)}
+                </div>
+              </div>
+
+              {/* ── Location map ── */}
+              <div className="border-t border-slate-100 pt-6 mt-6">
+                <h2 className="font-display font-semibold text-[1.1rem] text-navy mb-4">Location</h2>
+                <div className="rounded-xl overflow-hidden border border-slate-100 h-[220px]">
+                  <iframe
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(property.location + ', Goa, India')}&output=embed&z=14`}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    title={`Map showing ${property.location}`}
+                  />
+                </div>
+              </div>
+
+              {/* ── Enquiry form ── */}
+              <div className="mt-6">
+                <EnquiryFormInline propertyTitle={property.title} propertyId={property.id} />
+              </div>
             </div>
 
             {/* Sidebar */}

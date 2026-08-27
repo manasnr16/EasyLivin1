@@ -8,12 +8,12 @@
  * JSON as strings, not numbers — coerced with Number(...) before formatting.
  */
 
-import { formatPriceINR, formatRentINR, formatArea } from '@easyliving/shared'
+import { formatPriceINR, formatRentINR, formatArea, PROPERTY_TYPES } from '@easyliving/shared'
 import type { ApiProperty } from './api'
 import type { Property } from '@/types'
 
-function titleCase(s: string) {
-  return s.charAt(0) + s.slice(1).toLowerCase()
+function propertyTypeLabel(value: string) {
+  return PROPERTY_TYPES.find((t) => t.value === value)?.label ?? value
 }
 
 export function adaptProperty(p: ApiProperty): Property {
@@ -33,7 +33,7 @@ export function adaptProperty(p: ApiProperty): Property {
     id: p.id,
     slug: p.slug,
     title: p.title,
-    type: titleCase(p.propertyType),
+    type: propertyTypeLabel(p.propertyType),
     badge: p.isFeatured ? 'Featured' : p.isPremium ? 'Premium' : '',
     badgeColor: p.isFeatured ? 'gold' : p.isPremium ? 'navy' : undefined,
     price,
@@ -51,5 +51,19 @@ export function adaptProperty(p: ApiProperty): Property {
     description: p.description ?? undefined,
     propertyStatus: p.listingType === 'RENT' ? 'For Rent' : 'For Sale',
     features: p.amenities?.length ? { facilitiesAndConvenience: p.amenities } : undefined,
+
+    gallery: p.media?.map((m) => ({ url: m.url, altText: m.altText })),
+    balconies: p.balconies,
+    floorNumber: p.floorNumber,
+    totalFloors: p.floors,
+    facing: p.facing,
+    furnishing: p.furnishing,
+    possessionStatus: p.possessionStatus,
+    plotArea: p.plotAreaSqFt != null ? formatArea(Number(p.plotAreaSqFt)) : undefined,
+    parking: p.parking,
+    address: p.address,
+    village: p.village,
+    keyFacts: p.keyFacts ?? undefined,
+    distances: p.distances ?? undefined,
   }
 }
