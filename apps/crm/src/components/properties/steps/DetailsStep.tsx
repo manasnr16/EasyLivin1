@@ -16,6 +16,10 @@ interface DetailsStepProps {
 // Every field here is conditional on the selected property type via
 // FIELD_CONFIG (packages/shared/constants) — a Plot never sees Bedrooms,
 // an Apartment never sees Road Width. See getFieldsForPropertyType.
+// All applicable fields (except Facing, deliberately optional) must be
+// filled in before the wizard lets the step be marked complete — see
+// validateStep in PropertyForm.tsx — so every input below is
+// error-highlighted the same way.
 export default function DetailsStep({ form, errors, set }: DetailsStepProps) {
   const show = (field: SpecField) => isFieldApplicable(form.propertyType, field)
   const isLandOnly = LAND_ONLY_PROPERTY_TYPES.includes(form.propertyType as (typeof LAND_ONLY_PROPERTY_TYPES)[number])
@@ -31,13 +35,13 @@ export default function DetailsStep({ form, errors, set }: DetailsStepProps) {
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rooms</p>
           <div className="grid grid-cols-3 gap-4 max-w-md">
             {show('bedrooms') && (
-              <div><label className="crm-label">Bedrooms</label><input type="number" className="crm-input" min="0" max="20" value={form.bedrooms} onChange={num('bedrooms')} /></div>
+              <div><label className="crm-label">Bedrooms *</label><input type="number" className={clsxInput(!!errors['bedrooms'])} min="0" max="20" value={form.bedrooms} onChange={num('bedrooms')} /></div>
             )}
             {show('bathrooms') && (
-              <div><label className="crm-label">Bathrooms</label><input type="number" className="crm-input" min="0" max="20" value={form.bathrooms} onChange={num('bathrooms')} /></div>
+              <div><label className="crm-label">Bathrooms *</label><input type="number" className={clsxInput(!!errors['bathrooms'])} min="0" max="20" value={form.bathrooms} onChange={num('bathrooms')} /></div>
             )}
             {show('balconies') && (
-              <div><label className="crm-label">Balconies</label><input type="number" className="crm-input" min="0" max="10" value={form.balconies} onChange={num('balconies')} /></div>
+              <div><label className="crm-label">Balconies *</label><input type="number" className={clsxInput(!!errors['balconies'])} min="0" max="10" value={form.balconies} onChange={num('balconies')} /></div>
             )}
           </div>
         </div>
@@ -48,11 +52,11 @@ export default function DetailsStep({ form, errors, set }: DetailsStepProps) {
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Area (sq.ft)</p>
           <div className="grid grid-cols-2 gap-4 max-w-md">
             {show('areaSqFt') && (
-              <div><label className="crm-label">Built-up Area</label><input type="number" className="crm-input" value={form.areaSqFt} onChange={num('areaSqFt')} /></div>
+              <div><label className="crm-label">Built-up Area *</label><input type="number" className={clsxInput(!!errors['areaSqFt'])} value={form.areaSqFt} onChange={num('areaSqFt')} /></div>
             )}
             {show('plotAreaSqFt') && (
               <div>
-                <label className="crm-label">Plot Area {isLandOnly && '*'}</label>
+                <label className="crm-label">Plot Area *</label>
                 <input type="number" className={clsxInput(!!errors['plotAreaSqFt'])} value={form.plotAreaSqFt} onChange={num('plotAreaSqFt')} />
                 {errors['plotAreaSqFt'] && <p className="text-red-500 text-[12px] mt-1">{errors['plotAreaSqFt']}</p>}
               </div>
@@ -66,10 +70,10 @@ export default function DetailsStep({ form, errors, set }: DetailsStepProps) {
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Floor Details</p>
           <div className="grid grid-cols-2 gap-4 max-w-md">
             {show('floorNumber') && (
-              <div><label className="crm-label">Property Floor</label><input type="number" className="crm-input" value={form.floorNumber} onChange={num('floorNumber')} /></div>
+              <div><label className="crm-label">Property Floor *</label><input type="number" className={clsxInput(!!errors['floorNumber'])} value={form.floorNumber} onChange={num('floorNumber')} /></div>
             )}
             {show('floors') && (
-              <div><label className="crm-label">Total Floors</label><input type="number" className="crm-input" min="1" value={form.floors} onChange={num('floors')} /></div>
+              <div><label className="crm-label">Total Floors *</label><input type="number" className={clsxInput(!!errors['floors'])} min="1" value={form.floors} onChange={num('floors')} /></div>
             )}
           </div>
         </div>
@@ -80,12 +84,12 @@ export default function DetailsStep({ form, errors, set }: DetailsStepProps) {
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Plot Details</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
             {show('roadWidthFt') && (
-              <div><label className="crm-label">Road Width (ft)</label><input type="number" className="crm-input" value={form.roadWidthFt} onChange={num('roadWidthFt')} /></div>
+              <div><label className="crm-label">Road Width (ft) *</label><input type="number" className={clsxInput(!!errors['roadWidthFt'])} value={form.roadWidthFt} onChange={num('roadWidthFt')} /></div>
             )}
             {show('landUse') && (
               <div>
-                <label className="crm-label">Land Use</label>
-                <select className="crm-select" value={form.landUse} onChange={(e) => set('landUse', e.target.value)}>
+                <label className="crm-label">Land Use *</label>
+                <select className={`crm-select ${errors['landUse'] ? 'border-red-400' : ''}`} value={form.landUse} onChange={(e) => set('landUse', e.target.value)}>
                   <option value="">Select</option>
                   {LAND_USE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
@@ -101,8 +105,8 @@ export default function DetailsStep({ form, errors, set }: DetailsStepProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {show('furnishing') && (
               <div>
-                <label className="crm-label">Furnishing</label>
-                <select className="crm-select" value={form.furnishing} onChange={(e) => set('furnishing', e.target.value)}>
+                <label className="crm-label">Furnishing *</label>
+                <select className={`crm-select ${errors['furnishing'] ? 'border-red-400' : ''}`} value={form.furnishing} onChange={(e) => set('furnishing', e.target.value)}>
                   <option value="">Select</option>
                   <option value="unfurnished">Unfurnished</option>
                   <option value="semi-furnished">Semi-Furnished</option>
@@ -124,8 +128,8 @@ export default function DetailsStep({ form, errors, set }: DetailsStepProps) {
             )}
             {show('possessionStatus') && (
               <div>
-                <label className="crm-label">Status</label>
-                <select className="crm-select" value={form.possessionStatus} onChange={(e) => set('possessionStatus', e.target.value)}>
+                <label className="crm-label">Status *</label>
+                <select className={`crm-select ${errors['possessionStatus'] ? 'border-red-400' : ''}`} value={form.possessionStatus} onChange={(e) => set('possessionStatus', e.target.value)}>
                   <option value="">Select</option>
                   <option value="ready">Ready to Move</option>
                   <option value="under-construction">Under Construction</option>

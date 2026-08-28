@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, BedDouble, Bath, Maximize2, Phone, Mail, CheckCircle2 } from 'lucide-react'
 import EnquiryModal from '@/components/ui/EnquiryModal'
 import EnquiryFormInline from '@/components/ui/EnquiryFormInline'
+import PropertyImageSlider from '@/components/property/PropertyImageSlider'
 import type { Property, PropertyDetailRow } from '@/types'
 
 function titleCase(s: string) {
@@ -87,35 +87,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
 
             {/* Main content */}
             <div className="lg:col-span-2">
-              {/* Photo gallery */}
-              {gallery.length > 1 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                  {gallery.map((img, i) => (
-                    <div key={i}>
-                      <div className="relative h-[220px] rounded-xl overflow-hidden">
-                        <Image src={img.url} alt={img.altText ?? property.title} fill className="object-cover" priority={i < 2} />
-                        {i === 0 && property.badge && (
-                          <span className="absolute top-3 left-3 bg-gold text-navy-deep text-[11px] font-bold tracking-wide uppercase px-3 py-1 rounded-sm">
-                            {property.badge}
-                          </span>
-                        )}
-                      </div>
-                      {img.altText && <p className="text-center text-[11.5px] text-slate-400 mt-1.5">{img.altText}</p>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="relative h-[380px] rounded-2xl overflow-hidden mb-6">
-                  <Image src={gallery[0]!.url} alt={property.title} fill className="object-cover" priority />
-                  {property.badge && (
-                    <span className="absolute top-4 left-4 bg-gold text-navy-deep text-[11px] font-bold tracking-wide uppercase px-3 py-1 rounded-sm">
-                      {property.badge}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Title + price */}
+              {/* Title + price — always on top, independent of the slider below */}
               <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                 <div>
                   <h1 className="font-display text-[1.6rem] font-semibold text-navy leading-tight mb-1">{property.title}</h1>
@@ -128,6 +100,9 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   {property.priceNote && <span className="text-slate-400 text-[13px]">{property.priceNote}</span>}
                 </div>
               </div>
+
+              {/* Photo slider */}
+              <PropertyImageSlider images={gallery} alt={property.title} badge={property.badge} />
 
               {/* Specs bar */}
               <div className="flex gap-6 flex-wrap bg-slate-50 rounded-xl px-6 py-4 mb-6 border border-slate-100">

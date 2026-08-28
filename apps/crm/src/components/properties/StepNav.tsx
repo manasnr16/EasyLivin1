@@ -1,18 +1,20 @@
 'use client'
 
-import { Check } from 'lucide-react'
+import { Check, Lock } from 'lucide-react'
 import { STEPS, type StepKey } from './formTypes'
 
 interface StepNavProps {
   active: StepKey
   completed: Set<StepKey>
+  unlockedIndex: number
   onSelect: (key: StepKey) => void
 }
 
 // Horizontal on desktop/tablet — a numbered rail, not a dominant visual
-// element. Every step is clickable (no forced linear flow); a check mark
-// just tells staff what they've already filled in, it never blocks access.
-export default function StepNav({ active, completed, onSelect }: StepNavProps) {
+// element. Steps beyond unlockedIndex are locked (greyed out, not
+// clickable) — the wizard only lets a staff member reach a step once the
+// one before it is fully filled in; a check mark shows what's done.
+export default function StepNav({ active, completed, unlockedIndex, onSelect }: StepNavProps) {
   const activeIndex = STEPS.findIndex((s) => s.key === active)
 
   return (
@@ -21,15 +23,19 @@ export default function StepNav({ active, completed, onSelect }: StepNavProps) {
         {STEPS.map((step, i) => {
           const isActive = step.key === active
           const isDone = completed.has(step.key)
+          const isLocked = i > unlockedIndex
           return (
             <button
               key={step.key}
               type="button"
               onClick={() => onSelect(step.key)}
+              disabled={isLocked}
               className={`flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors ${
                 isActive
                   ? 'border-gold text-navy'
-                  : 'border-transparent text-slate-400 hover:text-navy'
+                  : isLocked
+                    ? 'border-transparent text-slate-300 cursor-not-allowed'
+                    : 'border-transparent text-slate-400 hover:text-navy'
               }`}
             >
               <span
@@ -42,7 +48,7 @@ export default function StepNav({ active, completed, onSelect }: StepNavProps) {
                 }`}
                 style={{ width: 18, height: 18 }}
               >
-                {isDone && !isActive ? <Check size={11} /> : i + 1}
+                {isLocked ? <Lock size={9} /> : isDone && !isActive ? <Check size={11} /> : i + 1}
               </span>
               {step.label}
             </button>

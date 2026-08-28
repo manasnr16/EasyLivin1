@@ -5,23 +5,25 @@ import type { PropertyFormState } from '../formTypes'
 
 interface FeaturesStepProps {
   form: PropertyFormState
+  errors: Record<string, string>
   set: <K extends keyof PropertyFormState>(key: K, value: PropertyFormState[K]) => void
   toggleAmenity: (amenity: string) => void
 }
 
-export default function FeaturesStep({ form, set, toggleAmenity }: FeaturesStepProps) {
+export default function FeaturesStep({ form, errors, set, toggleAmenity }: FeaturesStepProps) {
   return (
     <div className="bg-white rounded-xl border border-slate-100 p-6 space-y-6">
       <div>
-        <h3 className="text-[14px] font-semibold text-navy mb-1">Description</h3>
+        <h3 className="text-[14px] font-semibold text-navy mb-1">Description *</h3>
         <p className="text-[11px] text-slate-400 mb-2">Describe the property&apos;s location, layout, condition, views and key advantages.</p>
         <textarea
-          className="crm-input resize-none"
+          className={`crm-input resize-none ${errors['description'] ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''}`}
           rows={5}
           value={form.description}
           onChange={(e) => set('description', e.target.value)}
           placeholder="Write naturally — buyers respond to specifics, not sales language."
         />
+        {errors['description'] && <p className="text-red-500 text-[12px] mt-1">{errors['description']}</p>}
       </div>
 
       <div>

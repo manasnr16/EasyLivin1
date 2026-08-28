@@ -103,13 +103,14 @@ export default function LocationStep({ form, errors, set, clearError, locations,
       </div>
 
       <div>
-        <label className="crm-label">Address / Landmark</label>
+        <label className="crm-label">Address / Landmark *</label>
         <input
-          className="crm-input"
+          className={`crm-input ${errors['address'] ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''}`}
           value={form.address}
           onChange={(e) => set('address', e.target.value)}
           placeholder="Type the street address or landmark"
         />
+        {errors['address'] && <p className="text-red-500 text-[12px] mt-1">{errors['address']}</p>}
       </div>
 
       {showAddLocation && (

@@ -77,6 +77,10 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [newFiles, setNewFiles] = useState<File[]>([])
   const [existingMedia, setExistingMedia] = useState<ExistingMedia[]>([])
+  // How far the staff member has actually progressed — steps beyond this
+  // index are locked in StepNav until the current one is fully filled in.
+  const [unlockedIndex, setUnlockedIndex] = useState(0)
+  const [stepError, setStepError] = useState('')
 
   const { data: existing } = useSWR<ApiPropertyDetail>(isEdit ? `/api/properties/${propertyId}` : null, fetcher)
   const { data: agents } = useSWR<UserType[]>(isAdmin ? '/api/users' : null, fetcher)
@@ -118,12 +122,16 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
         assignedAgentId: existing.agents?.find((a) => a.isPrimary)?.agent.id ?? existing.agents?.[0]?.agent.id ?? '',
       }))
       setExistingMedia(existing.media ?? [])
+      // Editing an already-saved property — don't force the staff member
+      // back through a step-by-step gate for data that's already there.
+      setUnlockedIndex(STEPS.length - 1)
     }
   }, [existing])
 
   function set<K extends keyof PropertyFormState>(key: K, value: PropertyFormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
     if (errors[key as string]) setErrors((e) => { const n = { ...e }; delete n[key as string]; return n })
+    if (stepError) setStepError('')
   }
 
   function clearError(key: string) {
@@ -178,6 +186,74 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
       e['plotAreaSqFt'] = 'Plot area is required for this property type'
     setErrors(e)
     return e
+  }
+
+  const SPEC_FIELD_LABELS: Record<SpecField, string> = {
+    bedrooms: 'Bedrooms', bathrooms: 'Bathrooms', balconies: 'Balconies',
+    areaSqFt: 'Built-up Area', plotAreaSqFt: 'Plot Area', floorNumber: 'Property Floor',
+    floors: 'Total Floors', furnishing: 'Furnishing', parking: 'Parking Spots',
+    facing: 'Facing', possessionStatus: 'Status', roadWidthFt: 'Road Width', landUse: 'Land Use',
+  }
+
+  // Everything visible on a given step must be filled in before the wizard
+  // lets a staff member move past it — returns per-field errors (for the
+  // steps that render them) plus human labels for the "what's missing" banner.
+  function validateStep(step: StepKey): { fieldErrors: Record<string, string>; missingLabels: string[] } {
+    const fieldErrors: Record<string, string> = {}
+    const missingLabels: string[] = []
+
+    if (step === 'basic') {
+      if (!form.title.trim()) { fieldErrors['title'] = 'Please enter a property title'; missingLabels.push('Property Title') }
+      else if (form.title.length < 5) { fieldErrors['title'] = 'Title must be at least 5 characters'; missingLabels.push('Property Title (min. 5 characters)') }
+    }
+
+    if (step === 'details') {
+      // Facing is the one deliberate exception — genuinely unknown/not
+      // applicable for plenty of real listings, so "Not Specified" (blank)
+      // is left as a legitimate answer rather than forced.
+      for (const field of getFieldsForPropertyType(form.propertyType)) {
+        if (field === 'facing') continue
+        if (!(form[field as keyof PropertyFormState] as string).trim()) {
+          fieldErrors[field] = 'Required'
+          missingLabels.push(SPEC_FIELD_LABELS[field])
+        }
+      }
+    }
+
+    if (step === 'location') {
+      if (!form.village.trim()) { fieldErrors['village'] = 'Please select a property location'; missingLabels.push('Property Location') }
+      if (!form.address.trim()) { fieldErrors['address'] = 'Please add the address / landmark'; missingLabels.push('Address / Landmark') }
+    }
+
+    if (step === 'pricing') {
+      if ((form.listingType === 'SALE' || form.listingType === 'SALE_AND_RENT') && !form.priceOnRequest && !form.salePrice) {
+        fieldErrors['salePrice'] = 'Enter a valid property price (or mark Price on Request)'; missingLabels.push('Sale Price')
+      }
+      if ((form.listingType === 'RENT' || form.listingType === 'SALE_AND_RENT') && !form.rentPrice) {
+        fieldErrors['rentPrice'] = 'Enter a valid monthly rent'; missingLabels.push('Monthly Rent')
+      }
+    }
+
+    if (step === 'features') {
+      if (!form.description.trim()) { fieldErrors['description'] = 'Please add a description'; missingLabels.push('Description') }
+    }
+
+    return { fieldErrors, missingLabels }
+  }
+
+  // Validates the given step and, only if it's complete, unlocks/advances
+  // to the next one. Returns whether it advanced.
+  function tryAdvanceFrom(step: StepKey): boolean {
+    const { fieldErrors, missingLabels } = validateStep(step)
+    setErrors(fieldErrors)
+    if (missingLabels.length > 0) {
+      setStepError(`Please complete before continuing: ${missingLabels.join(', ')}.`)
+      return false
+    }
+    setStepError('')
+    const i = STEPS.findIndex((s) => s.key === step)
+    setUnlockedIndex((u) => Math.max(u, i + 1))
+    return true
   }
 
   // Publish-readiness checklist shown on the Media step (now the last step)
@@ -245,9 +321,27 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
     }
   }
 
+  // Free navigation backward/within what's already unlocked; a step ahead
+  // of unlockedIndex is refused with the same "what's missing" banner
+  // rather than silently doing nothing.
+  // Pure navigation — StepNav only ever offers steps up to unlockedIndex
+  // (locked ones are rendered disabled), so this is a straightforward guard
+  // rather than where the actual gating decision happens.
   function goToStep(step: StepKey) {
+    if (STEPS.findIndex((s) => s.key === step) > unlockedIndex) return
     setActiveStep(step)
     setVisitedSteps((s) => new Set(s).add(step))
+    setStepError('')
+  }
+
+  // "Continue" — the one place that actually validates the current step
+  // and, only if it's complete, unlocks and moves to the next one.
+  function handleContinue() {
+    if (!tryAdvanceFrom(activeStep)) return
+    const next = STEPS[STEPS.findIndex((s) => s.key === activeStep) + 1]
+    if (!next) return
+    setActiveStep(next.key)
+    setVisitedSteps((s) => new Set(s).add(next.key))
   }
 
   const photoCount = newFiles.length + existingMedia.length
@@ -282,7 +376,11 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
           <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-4 text-[13px] text-red-600">{saveError}</div>
         )}
 
-        <StepNav active={activeStep} completed={visitedSteps} onSelect={goToStep} />
+        <StepNav active={activeStep} completed={visitedSteps} unlockedIndex={unlockedIndex} onSelect={goToStep} />
+
+        {stepError && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-[13px] text-amber-800">{stepError}</div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1 min-w-0">
@@ -294,7 +392,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
               <LocationStep form={form} errors={errors} set={set} clearError={clearError} locations={locations ?? []} mutateLocations={mutateLocations} />
             )}
             {activeStep === 'pricing' && <PricingStep form={form} errors={errors} set={set} />}
-            {activeStep === 'features' && <FeaturesStep form={form} set={set} toggleAmenity={toggleAmenity} />}
+            {activeStep === 'features' && <FeaturesStep form={form} errors={errors} set={set} toggleAmenity={toggleAmenity} />}
             {activeStep === 'media' && (
               <MediaStep
                 isEdit={isEdit}
@@ -325,11 +423,7 @@ export default function PropertyForm({ propertyId }: PropertyFormProps) {
                   {saving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Save size={14} /> {isEdit ? 'Save Changes' : 'Publish Property'}</>}
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => { const i = STEPS.findIndex((s) => s.key === activeStep); goToStep(STEPS[i + 1]!.key) }}
-                  className="btn-primary"
-                >
+                <button type="button" onClick={handleContinue} className="btn-primary">
                   Continue
                 </button>
               )}
