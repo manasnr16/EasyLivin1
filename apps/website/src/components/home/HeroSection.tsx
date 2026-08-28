@@ -103,15 +103,15 @@ export default function HeroSection() {
           Discover exclusive villas, beachfront homes, and high-return investment properties in Goa&apos;s most sought-after locations.
         </p>
 
-        {/* Search bar */}
-        <div className="overflow-x-auto mb-3 -mx-1 px-1">
-          <div className="bg-white rounded-xl shadow-2xl overflow-hidden flex items-stretch min-w-[660px]">
+        {/* Search bar — column of full-width fields on mobile, single row from sm up */}
+        <div className="mb-3">
+          <div className="bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col sm:flex-row sm:items-stretch">
 
             {/* Buy / Rent toggle */}
-            <div className="flex border-r border-slate-100 flex-shrink-0">
+            <div className="flex border-b sm:border-b-0 sm:border-r border-slate-100 flex-shrink-0">
               <button
                 onClick={() => handleListingType('sale')}
-                className={`px-5 py-3 text-[13px] font-semibold transition-colors duration-150 ${
+                className={`flex-1 sm:flex-initial px-5 py-3 text-[13px] font-semibold transition-colors duration-150 ${
                   listingType === 'sale' ? 'bg-navy text-white' : 'text-slate-500 hover:text-navy'
                 }`}
               >
@@ -119,7 +119,7 @@ export default function HeroSection() {
               </button>
               <button
                 onClick={() => handleListingType('rent')}
-                className={`px-5 py-3 text-[13px] font-semibold transition-colors duration-150 ${
+                className={`flex-1 sm:flex-initial px-5 py-3 text-[13px] font-semibold transition-colors duration-150 ${
                   listingType === 'rent' ? 'bg-navy text-white' : 'text-slate-500 hover:text-navy'
                 }`}
               >
@@ -127,7 +127,7 @@ export default function HeroSection() {
               </button>
             </div>
 
-            <div className="flex-1 border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-[130px]">
+            <div className="flex-1 border-b sm:border-b-0 sm:border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-0">
               <span className="text-[9px] font-bold tracking-[0.14em] uppercase text-slate-400 leading-none mb-1">Property Type</span>
               <select
                 value={propertyType}
@@ -140,7 +140,7 @@ export default function HeroSection() {
               </select>
             </div>
 
-            <div className="flex-1 border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-[120px]">
+            <div className="flex-1 border-b sm:border-b-0 sm:border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-0">
               <span className="text-[9px] font-bold tracking-[0.14em] uppercase text-slate-400 leading-none mb-1">Location</span>
               <select
                 value={location}
@@ -153,7 +153,7 @@ export default function HeroSection() {
               </select>
             </div>
 
-            <div className="flex-1 border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-[120px]">
+            <div className="flex-1 border-b sm:border-b-0 sm:border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-0">
               <span className="text-[9px] font-bold tracking-[0.14em] uppercase text-slate-400 leading-none mb-1">Budget</span>
               <select
                 value={budget}
@@ -166,7 +166,7 @@ export default function HeroSection() {
               </select>
             </div>
 
-            <div className="flex-[1.4] border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-[150px]">
+            <div className="flex-1 sm:flex-[1.4] border-b sm:border-b-0 sm:border-r border-slate-100 px-3 py-2.5 flex flex-col justify-center min-w-0">
               <LocationAutocomplete
                 labelText="Search"
                 value={keyword}
@@ -180,7 +180,7 @@ export default function HeroSection() {
 
             <button
               onClick={handleSearch}
-              className="bg-gold hover:bg-gold-light text-navy-deep font-bold text-[13px] tracking-wide uppercase px-6 flex items-center justify-center gap-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0"
+              className="bg-gold hover:bg-gold-light text-navy-deep font-bold text-[13px] tracking-wide uppercase px-6 py-3 sm:py-0 flex items-center justify-center gap-2 transition-colors duration-200 whitespace-nowrap flex-shrink-0"
             >
               <Search size={13} />
               Search
